@@ -6,9 +6,18 @@ A Python-based automated patching tool for enabling raid battles in Dragon Ball 
 
 DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles when official raids are unavailable. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
 
+## Credits
+
+This project is a Python reimplementation of the original C# tool with added features and improved user experience.
+
+**Original Patching Logic**: [Gneiss64/DBFZRaidEnabler](https://github.com/Gneiss64/DBFZRaidEnabler)
+
+The pattern matching and binary patching techniques are based on Gneiss64's original work.
+
 ## Table of Contents
 
 - [Overview](#overview)
+- [Credits](#credits)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Compatibility](#compatibility)
@@ -20,7 +29,6 @@ DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid eve
 - [Logs](#logs)
 - [Building](#building)
 - [Project Structure](#project-structure)
-- [Credits](#credits)
 - [Disclaimer](#disclaimer)
 
 ## Features
@@ -149,14 +157,6 @@ src/
     ├── errors.py          # Error definitions
     └── logger.py          # Logging utilities
 ```
-
-## Credits
-
-This project is a Python reimplementation of the original C# tool with added features and improved user experience.
-
-**Original Patching Logic**: [Gneiss64/DBFZRaidEnabler](https://github.com/Gneiss64/DBFZRaidEnabler)
-
-The pattern matching and binary patching techniques are based on Gneiss64's original work.
 
 ## Disclaimer
 
