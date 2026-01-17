@@ -77,7 +77,8 @@ class DBFZRaidTUI:
         header = Panel(
             "[bold cyan]DBFZ Raid Enabler[/bold cyan]\n"
             "[dim]Enable raid battles for Dragon Ball FighterZ[/dim]\n"
-            "[dim]Python Edition - Automated Patching System[/dim]",
+            "[dim]Python Edition - Automated Patching System[/dim]\n"
+            "[dim]Version: 1.0.0[/dim]",
             box=box.DOUBLE,
             border_style="cyan"
         )
