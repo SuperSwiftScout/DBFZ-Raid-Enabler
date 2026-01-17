@@ -1,0 +1,121 @@
+# DBFZ Raid Enabler - [DOWNLOAD](../../releases)
+
+A Python-based automated patching tool for enabling raid battles in Dragon Ball FighterZ.
+
+## Overview
+
+DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles when official raids are unavailable. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
+
+## Features
+
+- **Automatic Game Detection**: Finds your DBFZ installation through Steam
+- **Binary Patching**: Patches the game executable to enable any raid index
+- **Non-Destructive**: Creates a separate patched executable, leaving the original untouched
+- **Raid Selection**: Choose from a list of available raid battles
+- **Shortcut Creation**: Creates convenient shortcuts in your game folder to patched executables
+- **Interactive TUI**: User-friendly terminal interface powered by Rich
+- **Safe Patching**: Validates all operations and provides detailed logging
+
+## Requirements
+
+- Windows OS
+- Dragon Ball FighterZ installed via Steam
+- Python 3.13+ (for running from source)
+
+## Compatibility
+
+Currently tested and working with:
+- **Game Version**: 4.17.2.0
+- **Last Verified**: January 2026
+
+## Installation
+
+### Option 1: Pre-built Executable (Recommended)
+1. Download the latest release from the [Releases](../../releases) page
+2. Run `DBFZ-Raid-Enabler.exe`
+
+### Option 2: From Source
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SuperSwiftStalker/DBFZ-Raid-Enabler.git
+   cd DBFZ-Raid-Enabler
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the application:
+   ```bash
+   python src/main.py
+   ```
+
+## Usage
+
+1. Launch the application
+2. The tool will automatically locate your DBFZ installation
+3. Select the raid battle you want to enable
+4. Confirm the patching operation
+5. Uninstall EAC (If not already uninstalled)
+6. A shortcut will be created in your game folder for easy access
+7. Launch the game and enjoy the raid battle!
+
+## How It Works
+
+The patcher performs three binary modifications to the game executable:
+- **Get Raid**: Patches the function that retrieves the current raid index
+- **Set Raid**: Patches the function that sets the active raid
+- **Raid Status**: Bypasses the online raid availability check
+
+These patterns and techniques are based on the original C# implementation.
+
+## How Patching Works
+
+- The tool creates a copy of your original executable (`RED-Win64-Shipping-Raid.exe`)
+- Your original `RED-Win64-Shipping.exe` is never modified and remains intact
+- All patches are applied to the copy, keeping your game installation safe
+- You can delete the patched executable anytime to return to vanilla gameplay
+
+## Building
+
+To build a standalone executable:
+
+```bash
+pyinstaller pyinstaller.spec
+```
+
+The executable will be created in the `dist/` directory.
+
+## Project Structure
+
+```
+src/
+├── main.py                 # Entry point
+├── core/
+│   ├── patcher.py         # Binary patching engine
+│   └── raid_data.py       # Raid battle definitions
+├── file_manager/
+│   ├── backup.py          # Backup management
+│   └── shortcut.py        # Desktop shortcut creation
+├── steam/
+│   └── game_locator.py    # Steam game detection
+├── ui/
+│   ├── screens.py         # UI screen components
+│   └── tui.py            # Terminal UI framework
+└── utils/
+    ├── errors.py          # Error definitions
+    └── logger.py          # Logging utilities
+```
+
+## Credits
+
+This project is a Python reimplementation of the original C# tool with added features and improved user experience.
+
+**Original Patching Logic**: [Gneiss64/DBFZRaidEnabler](https://github.com/Gneiss64/DBFZRaidEnabler)
+
+The pattern matching and binary patching techniques are based on Gneiss64's original work.
+
+## Disclaimer
+
+This tool is for educational and preservation purposes. Use it responsibly and at your own risk. The developers are not responsible for any issues that may arise from using this tool.

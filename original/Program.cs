@@ -1,4 +1,5 @@
 // Created by Gneiss64 at https://github.com/Gneiss64/DBFZRaidEnabler
+// This code is unused, but kept for reference. Specifically, the pattern scanning and patching logic for patcher.py
 using System;
 using System.IO;
 using System.Globalization;
