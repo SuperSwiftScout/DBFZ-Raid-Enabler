@@ -1,6 +1,7 @@
-# DBFZ Raid Enabler - [DOWNLOAD](../../releases)
+# DBFZ Raid Enabler
 
 A Python-based automated patching tool for enabling raid battles in Dragon Ball FighterZ.
+### [DOWNLOAD](../../releases)
 
 ## Table of Contents
 
