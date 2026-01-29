@@ -1,8 +1,9 @@
 """Backup management for clean game executable."""
 
 import shutil
+import logging
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 from utils.errors import BackupError
 from utils.logger import logger
 
@@ -123,25 +124,28 @@ class BackupManager:
             logger.error(f"Failed to detect current patch: {e}")
             return None
 
-    def cleanup_all(self, patched_exe: Path, game_root: Path) -> dict:
+    def cleanup_all(self, patched_exe: Path, game_root: Path, progress_callback: Optional[Callable[[str], None]] = None) -> dict:
         """
         Clean up all modifications made by the program.
 
         Removes:
         - Patched executable
         - All raid shortcuts (in game folder)
+        - Application log directory (~/.dbfz_raid_enabler)
 
         Note: Clean exe is never modified, so nothing to restore.
 
         Args:
             patched_exe: Path to patched executable
             game_root: Path to game root directory
+            progress_callback: Optional callable that receives status messages to be shown to the user
 
         Returns:
             Dictionary with cleanup results:
             {
                 'patched_exe_removed': bool,
                 'shortcuts_removed': int,
+                'logs_removed': bool,
                 'errors': [str]
             }
         """
@@ -150,12 +154,15 @@ class BackupManager:
         results = {
             'patched_exe_removed': False,
             'shortcuts_removed': 0,
+            'logs_removed': False,
             'errors': []
         }
 
         # Remove patched exe
         if patched_exe.exists():
             try:
+                if progress_callback:
+                    progress_callback("Removing patched executable...")
                 logger.info(f"Removing patched exe: {patched_exe}")
                 patched_exe.unlink()
                 results['patched_exe_removed'] = True
@@ -166,6 +173,10 @@ class BackupManager:
                 results['errors'].append(error_msg)
         else:
             logger.info("Patched exe not found, nothing to remove")
+
+        # Update status
+        if progress_callback:
+            progress_callback("Removing raid shortcuts...")
 
         # Remove all shortcuts in game root folder
         try:
@@ -182,5 +193,59 @@ class BackupManager:
             error_msg = f"Error scanning for shortcuts in game folder: {e}"
             logger.error(error_msg)
             results['errors'].append(error_msg)
+
+        # Update status
+        if progress_callback:
+            progress_callback("Removing application logs...")
+
+        # Remove application logs directory created by the program
+        log_dir = Path.home() / ".dbfz_raid_enabler"
+        try:
+            if log_dir.exists():
+                if progress_callback:
+                    progress_callback("Closing log file handles...")
+                logger.info(f"Preparing to remove application logs directory: {log_dir}")
+
+                # Try to close any file handlers that might be holding files open in the logs dir
+                try:
+                    for handler in logger.handlers[:]:
+                        try:
+                            base_filename = getattr(handler, 'baseFilename', None)
+                            if base_filename:
+                                handler_path = Path(base_filename).resolve()
+                                try:
+                                    log_dir_resolved = log_dir.resolve()
+                                except Exception:
+                                    log_dir_resolved = log_dir
+                                if log_dir_resolved == handler_path or log_dir_resolved in handler_path.parents:
+                                    logger.debug(f"Closing log handler for file: {base_filename}")
+                                    try:
+                                        handler.flush()
+                                    except Exception:
+                                        pass
+                                    try:
+                                        handler.close()
+                                    except Exception:
+                                        pass
+                                    try:
+                                        logger.removeHandler(handler)
+                                    except Exception:
+                                        pass
+                        except Exception as e:
+                            logger.warning(f"Could not close handler {handler}: {e}")
+                except Exception as e:
+                    logger.warning(f"Failed while attempting to close log handlers: {e}")
+
+                shutil.rmtree(log_dir)
+                results['logs_removed'] = True
+                logger.info("Logs directory removed successfully")
+            else:
+                logger.info("Logs directory not found, nothing to remove")
+        except Exception as e:
+            error_msg = f"Failed to remove logs directory {repr(log_dir)}: {e}"
+            logger.error(error_msg)
+            results['errors'].append(error_msg)
+            # Critical: failing to remove logs should abort the whole cleanup
+            raise BackupError(error_msg)
 
         return results

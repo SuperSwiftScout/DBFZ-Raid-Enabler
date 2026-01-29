@@ -1,6 +1,7 @@
 # DBFZ Raid Enabler
 
-A Python-based automated patching tool for enabling raid battles in Dragon Ball FighterZ.
+DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles again. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
+
 ### [DOWNLOAD](../../releases)
 
 ## Table of Contents
@@ -19,10 +20,6 @@ A Python-based automated patching tool for enabling raid battles in Dragon Ball 
 - [Building](#building)
 - [Project Structure](#project-structure)
 - [Disclaimer](#disclaimer)
-
-## Overview
-
-DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles when official raids are unavailable. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
 
 ## Credits
 
