@@ -417,7 +417,7 @@ class DBFZRaidTUI:
         )
         table.add_column("#", style="cyan", justify="right", width=4)
         table.add_column("Raid Name", style="white", no_wrap=False)
-        table.add_column("Risk", style="red", justify="center", width=7)
+        table.add_column("Risk", style="red", justify="left", width=7)
         table.add_column("Final Boss", style="yellow", no_wrap=False, width=22)
         table.add_column("Enemies", style="dim", no_wrap=False)
 
