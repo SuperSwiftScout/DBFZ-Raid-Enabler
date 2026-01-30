@@ -1,17 +1,19 @@
 """Terminal UI for DBFZ Raid Enabler."""
 
 import os
+import sys
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.markup import escape
 from rich import box
 from pathlib import Path
 from typing import Optional, Dict, Union
 
 from core.patcher import BinaryPatcher
-from core.raid_data import get_all_raids, get_raid_name
+from core.raid_data import get_all_raids_with_bosses
 from steam.game_locator import GameLocator
 from file_manager.backup import BackupManager
 from file_manager.shortcut import ShortcutManager
@@ -43,28 +45,41 @@ class DBFZRaidTUI:
             # Step 1: Detect Steam and DBFZ
             game_info = self.detect_game()
             if not game_info:
-                self.console.print("\n[red]Cannot proceed without game installation.[/red]")
-                self.console.print("[dim]Press Enter to exit...[/dim]")
-                input()
+                self.console.print()
+                self.console.print("[yellow]Operation cancelled.[/yellow]")
                 return
 
-            # Step 2: Check current patch status
-            current_raid = self.check_current_patch(game_info)
+            # Step 2: Enter main menu loop (allows returning to selection on cancel)
+            while True:
+                # Check current patch status each loop iteration
+                current_raid = self.check_current_patch(game_info)
 
-            # Step 3: Show raid selection menu
-            selection = self.show_raid_menu(current_raid)
-            if not selection:
-                self.console.print("\n[yellow]Operation cancelled.[/yellow]")
-                return
+                # Step 3: Show raid selection menu
+                selection = self.show_raid_menu(current_raid)
+                if not selection:
+                    self.console.print("[yellow]Operation cancelled.[/yellow]")
+                    return
 
-            # Step 4: Execute workflow based on selection
-            if selection == 'cleanup':
-                self.execute_cleanup_workflow(game_info)
-            elif isinstance(selection, int):
-                self.execute_patch_workflow(game_info, selection, current_raid)
+                # Step 4: Execute workflow based on selection
+                if selection == 'cleanup':
+                    cleanup_result = self.execute_cleanup_workflow(game_info)
+
+                    # If user cancelled the cleanup, return to selection loop
+                    if cleanup_result is False:
+                        continue
+
+                    # After cleanup attempt (successful or failed), exit app
+                    return
+                elif isinstance(selection, int):
+                    result = self.execute_patch_workflow(game_info, selection, current_raid)
+                    if result is False:
+                        # User cancelled re-patch, return to menu
+                        continue
+                    return
 
         except KeyboardInterrupt:
-            self.console.print("\n\n[yellow]Operation cancelled by user.[/yellow]")
+            self.console.print()
+            self.console.print("[yellow]Operation cancelled.[/yellow]")
         except DBFZRaidError as e:
             self.console.print(f"\n[red]Error: {e}[/red]")
             logger.exception("Application error")
@@ -76,9 +91,9 @@ class DBFZRaidTUI:
         """Display application header."""
         header = Panel(
             "[bold cyan]DBFZ Raid Enabler[/bold cyan]\n"
-            "[dim]Enable raid battles for Dragon Ball FighterZ[/dim]\n"
-            "[dim]Python Edition - Automated Patching System[/dim]\n"
-            "[dim]Version: 1.0.1[/dim]",
+            "[dim]Version 1.0.2[/dim]\n"
+            "[dim]Intended for DBFZ Version 4.17.2.0[/dim]\n"
+            "[dim]Python tool to patch Dragon Ball FighterZ to enable raid battles again.[/dim]",
             box=box.DOUBLE,
             border_style="cyan"
         )
@@ -95,7 +110,8 @@ class DBFZRaidTUI:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
-            console=self.console
+            console=self.console,
+            transient=True
         ) as progress:
             task = progress.add_task("Detecting Steam installation...", total=None)
 
@@ -115,12 +131,30 @@ class DBFZRaidTUI:
                 paths = self.game_locator.find_and_validate(libraries)
             except GameNotFoundError as e:
                 progress.stop()
+                error_msg = str(e)
+
+                # Check if game was found but corrupted (vs not found at all)
+                if "found but" in error_msg.lower():
+                    # Game folder exists but files are missing - show error and exit
+                    self.console.print()
+                    self.console.print(f"[red]{error_msg}[/red]")
+                    self.console.print()
+                    self.console.print("[dim]Press Enter to exit...[/dim]")
+                    input()
+                    sys.exit(0)
 
                 self.console.print(f"[yellow]Game not found in Steam libraries. Checking common paths...[/yellow]")
-                self.console.print()
 
                 # Try common paths as fallback
+                self._found_corrupted_installation = False
                 game_root = self.check_common_paths_with_output()
+
+                # If corruption was detected, just wait for Enter to exit
+                if self._found_corrupted_installation:
+                    self.console.print()
+                    self.console.print("[dim]Press Enter to exit...[/dim]")
+                    input()
+                    sys.exit(0)
 
                 if game_root and self.game_locator.validate_installation(game_root):
                     paths = self.game_locator.get_file_paths(game_root)
@@ -129,14 +163,18 @@ class DBFZRaidTUI:
                     self.console.print()
                     return {'game_root': game_root, 'paths': paths}
 
-                # If common paths also failed, show error and offer manual input
+                # If common paths also failed, offer manual input
                 self.console.print()
-                self.console.print(f"[red]{e}[/red]")
                 self.console.print("[yellow]Common installation paths also checked with no success.[/yellow]")
                 # Offer manual path input as final fallback
                 return self.manual_game_path_input()
 
             progress.update(task, description="Game found!", completed=True)
+            # Ensure final render before context exit so spinner doesn't leave a stale character
+            try:
+                progress.refresh()
+            except Exception:
+                pass
 
         game_root = paths['game_root']
         self.console.print(f"[green]✓ Found DBFZ at:[/green] [cyan]{game_root}[/cyan]")
@@ -172,9 +210,6 @@ class DBFZRaidTUI:
                     exe_path = exe_path.resolve()
                 except:
                     pass
-
-                # Show what we're checking
-                self.console.print(f"[dim]Checking: {exe_path}[/dim]")
 
                 # Convert to absolute string path for consistency
                 exe_path_str = os.path.abspath(str(exe_path))
@@ -233,8 +268,6 @@ class DBFZRaidTUI:
                     logger.info(f"Found DBFZ at: {game_path}")
                     return game_path
                 else:
-                    self.console.print(f"  [dim]→ Not found[/dim]")
-
                     # If this is the first path (most likely), check what's in the directory
                     if base == base_paths[0][0]:  # First path, first case
                         parent_dir = os.path.dirname(exe_path_str)
@@ -243,9 +276,10 @@ class DBFZRaidTUI:
                                 files = os.listdir(parent_dir)
                                 logger.info(f"  Directory exists. Files in {parent_dir}:")
                                 logger.info(f"    {files}")
-                                self.console.print(f"    [yellow]Win64 directory exists but executable not found![/yellow]")
-                                self.console.print(f"    [yellow]This usually means game files are corrupted or modified.[/yellow]")
-                                self.console.print(f"    [cyan]→ Fix: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity[/cyan]")
+                                self.console.print(f"[red]Game folder found but executable is missing.[/red]")
+                                self.console.print(f"[cyan]Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity[/cyan]")
+                                self.console.print(f"[cyan]If that doesn't work, reinstall the game[/cyan]")
+                                self._found_corrupted_installation = True
                             except Exception as e:
                                 logger.error(f"  Could not list directory: {e}")
                         else:
@@ -253,8 +287,10 @@ class DBFZRaidTUI:
                             game_root_str = str(game_path)
                             if os.path.exists(game_root_str):
                                 logger.info(f"  Game root exists but Win64 directory missing: {game_root_str}")
-                                self.console.print(f"    [yellow]Game folder exists but installation is incomplete![/yellow]")
-                                self.console.print(f"    [cyan]→ Fix: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity[/cyan]")
+                                self.console.print(f"[red]\nGame folder found but installation is incomplete.[/red]")
+                                self.console.print(f"[cyan]Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity[/cyan]")
+                                self.console.print(f"[cyan]If that doesn't work, reinstall the game[/cyan]")
+                                self._found_corrupted_installation = True
                             else:
                                 logger.info(f"  Game not installed at: {game_root_str}")
 
@@ -266,21 +302,33 @@ class DBFZRaidTUI:
 
         Returns:
             Dictionary with game_root and paths, or None if cancelled/invalid
+
+        Raises:
+            KeyboardInterrupt: If user chooses to quit (for clean exit handling)
         """
         self.console.print()
-        self.console.print("[yellow]Automatic detection failed. You can manually enter the game path.[/yellow]")
+        self.console.print("[red]Automatic detection failed. You can manually enter the game path.[/red]")
         self.console.print("[dim]Example: C:\\Program Files (x86)\\Steam\\steamapps\\common\\DRAGON BALL FighterZ[/dim]")
         self.console.print()
 
         while True:
             try:
                 user_input = Prompt.ask(
-                    "Enter game path (or 'q' to quit)",
+                    "Enter game path, 'c' for cleanup, or 'q' to quit",
                     console=self.console
                 )
 
                 if user_input.lower() == 'q':
                     return None
+
+                if user_input.lower() == 'c':
+                    # Clean up logs only (no game path needed)
+                    self.execute_logs_cleanup()
+                    continue
+
+                # Skip empty input
+                if not user_input.strip():
+                    continue
 
                 # Clean up the input path
                 game_path = Path(user_input.strip().strip('"').strip("'"))
@@ -294,10 +342,30 @@ class DBFZRaidTUI:
                     self.console.print(f"[red]Path is not a directory: {game_path}[/red]")
                     continue
 
-                # Validate it's a valid DBFZ installation
-                if not self.game_locator.validate_installation(game_path):
-                    self.console.print(f"[red]Invalid DBFZ installation at: {game_path}[/red]")
-                    self.console.print("[dim]Make sure you're pointing to the 'DRAGON BALL FighterZ' folder[/dim]")
+                # Validate it's a valid DBFZ installation with specific error messages
+                paths = self.game_locator.get_file_paths(game_path)
+                exe_path = paths['clean_exe']
+                exe_dir = paths['exe_directory']
+                red_folder = game_path / "RED"
+
+                # Check if this even looks like DBFZ (has RED folder)
+                if not red_folder.exists():
+                    self.console.print(f"[red]Not a valid DBFZ installation folder.[/red]")
+                    self.console.print(f"[dim]Expected to find 'RED' folder inside the game directory.[/dim]")
+                    continue
+
+                if not exe_dir.exists():
+                    self.console.print(f"[red]Game folder found but installation is incomplete.[/red]")
+                    self.console.print(f"[dim]Missing: RED/Binaries/Win64 folder[/dim]")
+                    self.console.print(f"[cyan]Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity[/cyan]")
+                    self.console.print(f"[cyan]If that doesn't work, reinstall the game[/cyan]")
+                    continue
+
+                if not exe_path.exists():
+                    self.console.print(f"[red]Game folder found but executable is missing.[/red]")
+                    self.console.print(f"[dim]Missing: {exe_path.name}[/dim]")
+                    self.console.print(f"[cyan]Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity[/cyan]")
+                    self.console.print(f"[cyan]If that doesn't work, reinstall the game[/cyan]")
                     continue
 
                 # Success - generate paths
@@ -308,6 +376,7 @@ class DBFZRaidTUI:
                 return {'game_root': game_path, 'paths': paths}
 
             except KeyboardInterrupt:
+                self.console.print()  # complete the interrupted line
                 return None
             except Exception as e:
                 self.console.print(f"[red]Error: {e}[/red]")
@@ -324,16 +393,7 @@ class DBFZRaidTUI:
             Current raid index or None
         """
         paths = game_info['paths']
-        current_raid = self.backup_manager.detect_current_patch(paths['patched_exe'])
-
-        if current_raid:
-            raid_name = get_raid_name(current_raid)
-            self.console.print(
-                f"[yellow]Current patch:[/yellow] Raid {current_raid} - {raid_name}"
-            )
-            self.console.print()
-
-        return current_raid
+        return self.backup_manager.detect_current_patch(paths['patched_exe'])
 
     def show_raid_menu(self, current_raid: Optional[int]) -> Union[int, str, None]:
         """
@@ -345,44 +405,47 @@ class DBFZRaidTUI:
         Returns:
             Selected raid index (int), 'cleanup' for cleanup, or None if cancelled
         """
-        raids = get_all_raids()
+        raids = get_all_raids_with_bosses()
 
         # Create table
         table = Table(
-            title="Select a Raid",
+            title="Vanilla Raid Table",
             caption="[dim]Note: Only one raid can be active at a time[/dim]",
-            box=box.ROUNDED,
             show_header=True,
-            header_style="bold magenta"
+            header_style="bold magenta",
+            show_lines=True
         )
-        table.add_column("Index", style="cyan", justify="right", width=6)
-        table.add_column("Raid Boss", style="white", no_wrap=False)
-        table.add_column("Status", style="white", width=10)
+        table.add_column("#", style="cyan", justify="right", width=4)
+        table.add_column("Raid Name", style="white", no_wrap=False)
+        table.add_column("Risk", style="red", justify="center", width=7)
+        table.add_column("Final Boss", style="yellow", no_wrap=False, width=22)
+        table.add_column("Enemies", style="dim", no_wrap=False)
 
-        # Add rows
-        for idx, name in raids:
-            if idx == current_raid:
-                status = "[bold green]ACTIVE[/bold green]"
-            else:
-                status = "[dim]INACTIVE[/dim]"
-            table.add_row(str(idx), name, status)
+        # Add rows (escape to prevent Rich markup interpretation)
+        for idx, name, boss, characters, risk in raids:
+            risk_stars = "★" * risk
+            table.add_row(str(idx), escape(name), risk_stars, escape(boss), escape(characters))
 
         self.console.print(table)
         self.console.print()
 
+        # Show current patch below the table
+        if current_raid:
+            self.console.print(f"[yellow]Current patch:[/yellow] Raid {current_raid}")
+            self.console.print()
+
         # Prompt for selection
         while True:
             try:
-                default_str = f"Current raid: {current_raid}" if current_raid else "No current raid"
                 choice = Prompt.ask(
-                    "Enter raid number (1-38), 'c' to cleanup, or 'q' to quit",
-                    default=default_str,
+                    "Select a raid (1-38), 'c' to cleanup, or 'q' to quit",
                     console=self.console
                 )
 
                 choice_lower = choice.lower()
 
                 if choice_lower == 'q':
+                    self.console.print()  # blank line for visual separation
                     return None
 
                 if choice_lower == 'c':
@@ -397,6 +460,8 @@ class DBFZRaidTUI:
             except ValueError:
                 self.console.print("[red]Invalid input. Enter a number, 'c' for cleanup, or 'q'.[/red]")
             except KeyboardInterrupt:
+                self.console.print()  # complete the interrupted line
+                self.console.print()  # blank line for visual separation
                 return None
 
     def execute_patch_workflow(
@@ -415,19 +480,17 @@ class DBFZRaidTUI:
         """
         paths = game_info['paths']
         game_root = game_info['game_root']
-        raid_name = get_raid_name(raid_index)
 
         # Check if already patched
         if current_raid == raid_index:
-            self.console.print(
-                f"\n[yellow]Raid {raid_index} ({raid_name}) is already active![/yellow]"
-            )
+            self.console.print(f"\n[orange1]Raid {raid_index} is already active![/orange1]")
+            self.console.print()
             if not Confirm.ask("Do you want to re-patch anyway?", default=False):
-                return
+                return False  # Signal to return to menu
 
-        self.console.print(f"\n[bold]Patching for: {raid_name}[/bold]\n")
+        self.console.print(f"\n[bold]Patching for: Raid {raid_index}[/bold]\n")
 
-        with Progress(console=self.console) as progress:
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=self.console, transient=True) as progress:
             task = progress.add_task("Processing...", total=4)
 
             # Step 1: Verify clean exe
@@ -487,15 +550,15 @@ class DBFZRaidTUI:
             except Exception as e:
                 logger.warning(f"Error scanning for old shortcuts: {e}")
 
-            # Generate shortcut filename with raid name
-            shortcut_name = f"DBFZ Raid {raid_index} - {raid_name}.lnk"
+            # Generate shortcut filename
+            shortcut_name = f"DBFZ Raid {raid_index}.lnk"
             shortcut_path = game_root / shortcut_name
 
             try:
                 self.shortcut_manager.create_shortcut(
                     paths['patched_exe'],
                     shortcut_path,
-                    raid_name
+                    f"Raid {raid_index}"
                 )
                 self.console.print(f"[green]✓ Shortcut created: {shortcut_name}[/green]")
             except Exception as e:
@@ -513,9 +576,8 @@ class DBFZRaidTUI:
             f"You need to manually uninstall EasyAntiCheat for the patch to work.\n"
             f"[bold yellow]→ You can disregard this message if you have already uninstalled EasyAntiCheat.[/bold yellow]\n\n"
             f"[bold]To uninstall EAC:[/bold]\n"
-            f"Run: [cyan]{game_root}\\EasyAntiCheat\\EasyAntiCheat_Setup.exe[/cyan]\n"
-            f"Then click 'Uninstall'\n\n"
-            f"[dim]Note: This is required to bypass anti-cheat for raids, otherwise the patch may not function correctly and leads to Desync issues.[/dim]",
+            f"Run: [cyan]{escape(str(game_root))}\\EasyAntiCheat\\EasyAntiCheat_Setup.exe[/cyan]\n"
+            f"Then click 'Uninstall'",
             box=box.ROUNDED,
             border_style="yellow",
             title="Action May Be Required"
@@ -525,15 +587,10 @@ class DBFZRaidTUI:
 
         success_panel = Panel(
             f"[bold green]Patching Complete![/bold green]\n\n"
-            f"Raid: [cyan]{raid_name}[/cyan]\n"
-            f"Patch Offsets:\n"
-            f"  • Get Raid:         0x{result['offsets'].get('get_raid', 0):X}\n"
-            f"  • Set Raid:         0x{result['offsets'].get('set_raid', 0):X}\n"
-            f"  • Raid Status:      0x{result['offsets'].get('raid_status', 0):X}\n"
-            f"  • FCup Skip:        0x{result['offsets'].get('skip_fcup_caller', 0):X}\n"
-            f"  • Partybattle Skip: 0x{result['offsets'].get('skip_partybattle', 0):X}\n\n"
-            f"[bold]Launch via shortcut:[/bold] [cyan]{shortcut_name}[/cyan]\n"
-            f"[dim]Located in: {game_root}[/dim]",
+            f"Raid: [cyan]{raid_index}[/cyan]\n"
+            f"Patches applied: [cyan]{len(result['offsets'])}[/cyan]\n\n"
+            f"[bold]Launch:[/bold] [cyan]{shortcut_name}[/cyan]\n"
+            f"[dim]Located in: {escape(str(game_root))}[/dim]",
             box=box.DOUBLE,
             border_style="green",
             title="Success"
@@ -544,8 +601,8 @@ class DBFZRaidTUI:
         # Ask if user wants to open the folder
         if Confirm.ask("Open folder where shortcut is located?", default=True):
             try:
-                import subprocess
-                subprocess.run(['explorer', '/select,', str(shortcut_path)])
+                import os
+                os.startfile(shortcut_path.parent)
             except Exception as e:
                 logger.warning(f"Could not open folder: {e}")
 
@@ -564,23 +621,44 @@ class DBFZRaidTUI:
         self.console.print("[yellow]This will remove all modifications made by this program:[/yellow]")
         self.console.print("  • Patched executable (RED-Win64-Shipping-eac-nop-loaded.exe)")
         self.console.print("  • All raid shortcuts (in game folder)")
+        self.console.print("  • Application logs directory (~/.dbfz_raid_enabler)")
         self.console.print()
         self.console.print("[dim]Note: Original game files are never modified[/dim]")
         self.console.print()
 
         if not Confirm.ask("Are you sure you want to cleanup?", default=False):
-            self.console.print("[yellow]Cleanup cancelled.[/yellow]")
-            return
+            self.console.print()  # blank line for visual separation
+            self.console.print("[yellow]Operation cancelled.[/yellow]")
+            self.console.print()
+            # Return False to indicate the user cancelled and wants to go back to the menu
+            return False
 
         self.console.print()
-        self.console.print("[bold]Cleaning up...[/bold]\n")
 
-        # Execute cleanup
+        # Execute cleanup with transient spinner
         try:
-            result = self.backup_manager.cleanup_all(
-                paths['patched_exe'],
-                game_root
-            )
+            with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=self.console, transient=True) as progress:
+                task = progress.add_task("Preparing cleanup...", total=None)
+
+                # Provide a simple callback so `cleanup_all` can update the progress message
+                def _update(msg: str):
+                    try:
+                        progress.update(task, description=msg)
+                    except Exception:
+                        pass
+
+                # Pass the callback into cleanup_all so it can report detailed status
+                result = self.backup_manager.cleanup_all(
+                    paths['patched_exe'],
+                    game_root,
+                    progress_callback=_update
+                )
+
+                progress.update(task, description="Finalizing...", completed=True)
+                try:
+                    progress.refresh()
+                except Exception:
+                    pass
 
             # Show results
             items_removed = []
@@ -597,12 +675,37 @@ class DBFZRaidTUI:
             else:
                 self.console.print("[dim]• No raid shortcuts found[/dim]")
 
+            # Logs directory removal
+            if result.get('logs_removed'):
+                items_removed.append("Application logs directory")
+                self.console.print("[green]✓ Application logs directory removed[/green]")
+            else:
+                self.console.print("[dim]• Logs directory not found or not removed[/dim]")
+
             # Show errors if any
             if result['errors']:
                 self.console.print()
                 self.console.print("[yellow]Errors encountered:[/yellow]")
                 for error in result['errors']:
                     self.console.print(f"  [yellow]• {error}[/yellow]")
+
+                # Failure panel - treat cleanup as failed
+                self.console.print()
+                failure_panel = Panel(
+                    f"[bold red]Cleanup failed[/bold red]\n\n"
+                    f"Removed (partial):\n" +
+                    "\n".join(f"  • {item}" for item in items_removed) + "\n\n"
+                    f"[dim]Original game files may have been partially modified. Please inspect the errors above and restore files manually if needed.[/dim]",
+                    box=box.DOUBLE,
+                    border_style="red",
+                    title="Failure"
+                )
+                self.console.print(failure_panel)
+                self.console.print()
+                self.console.print("[dim]Press Enter to exit...[/dim]")
+                input()
+                # Return True to indicate cleanup ran (even if it failed)
+                return True
 
             # Success message
             self.console.print()
@@ -631,8 +734,60 @@ class DBFZRaidTUI:
             self.console.print()
             self.console.print("[dim]Press Enter to exit...[/dim]")
             input()
+            # Return True to indicate cleanup ran (success)
+            return True
 
         except Exception as e:
+            # If a BackupError occurred it is already logged; show user-friendly failure
             self.console.print()
             self.console.print(f"[red]Cleanup failed: {e}[/red]")
             logger.exception("Cleanup error")
+            # Return True to indicate cleanup attempted (exception occurred)
+            return True
+
+    def execute_logs_cleanup(self):
+        """
+        Clean up only the application logs directory.
+        Used when game path is not available.
+        """
+        import shutil
+
+        log_dir = Path.home() / ".dbfz_raid_enabler"
+
+        self.console.print()
+        self.console.print("[yellow]This will remove application logs:[/yellow]")
+        self.console.print(f"  • {log_dir}")
+        self.console.print()
+
+        if not Confirm.ask("Are you sure?", default=False):
+            self.console.print("\n[yellow]Operation cancelled.[/yellow]\n")
+            return
+
+        try:
+            if log_dir.exists():
+                # Close log file handlers before deleting
+                for handler in logger.handlers[:]:
+                    try:
+                        base_filename = getattr(handler, 'baseFilename', None)
+                        if base_filename:
+                            handler_path = Path(base_filename).resolve()
+                            log_dir_resolved = log_dir.resolve()
+                            if log_dir_resolved == handler_path or log_dir_resolved in handler_path.parents:
+                                handler.flush()
+                                handler.close()
+                                logger.removeHandler(handler)
+                    except Exception:
+                        pass
+
+                shutil.rmtree(log_dir)
+                self.console.print("[green]✓ Logs directory removed[/green]")
+                self.console.print()
+                self.console.print("[dim]Press Enter to exit...[/dim]")
+                input()
+                sys.exit(0)
+            else:
+                self.console.print("[dim]• Logs directory not found[/dim]")
+        except Exception as e:
+            self.console.print(f"[red]Failed to remove logs: {e}[/red]")
+
+        self.console.print()

@@ -67,6 +67,7 @@ exe = EXE(
     a.datas,
     [],
     name='DBFZ_Raid_Enabler',
+    icon='icon.ico',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

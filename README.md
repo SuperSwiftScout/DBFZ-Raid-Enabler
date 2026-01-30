@@ -1,11 +1,22 @@
 # DBFZ Raid Enabler
 
-A Python-based automated patching tool for enabling raid battles in Dragon Ball FighterZ.
+DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles again. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
+
 ### [DOWNLOAD](../../releases)
+
+## Read Before You Play
+
+To avoid desync issues during online raid play, **all players must be on the same local network (LAN)**. If you're playing with friends over the internet, use a VPN tunneling solution to simulate a LAN connection:
+
+- **Radmin VPN**
+- **Hamachi**
+- **Tailscale**
+
+Without LAN or VPN tunneling, you will likely experience severe desynchronization that makes raids unplayable.
 
 ## Table of Contents
 
-- [Overview](#overview)
+- [Read Before You Play](#read-before-you-play)
 - [Credits](#credits)
 - [Features](#features)
 - [Requirements](#requirements)
@@ -19,10 +30,6 @@ A Python-based automated patching tool for enabling raid battles in Dragon Ball 
 - [Building](#building)
 - [Project Structure](#project-structure)
 - [Disclaimer](#disclaimer)
-
-## Overview
-
-DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles when official raids are unavailable. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
 
 ## Credits
 
@@ -98,6 +105,7 @@ Some antivirus software may flag the patched executable or `DBFZ_Raid_Enabler.ex
 
 ### Desync Issues
 If you're experiencing major desynchronization issues during online play:
+- **Use LAN or VPN tunneling**: All players must be on the same local network. If playing over the internet, use VPN tunneling software like Radmin VPN, Hamachi, or ZeroTier
 - Ensure EAC (Easy Anti-Cheat) is properly uninstalled
 - Verify that **all players** are using the executable that was patched with this program
 - All players must be on the same patched version to avoid desync

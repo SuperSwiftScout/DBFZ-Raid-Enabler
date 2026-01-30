@@ -1,8 +1,4 @@
-"""Binary patching engine for DBFZ executable.
-
-This module translates the C# pattern matching logic from Program.cs
-to enable raid battles in Dragon Ball FighterZ.
-"""
+"""Binary patching engine for DBFZ executable."""
 
 from pathlib import Path
 from typing import Any, Dict, Tuple
@@ -11,18 +7,12 @@ from utils.logger import logger
 
 
 class BinaryPatcher:
-    """
-    Handles binary pattern matching and patching for DBFZ executable.
-    Translates C# logic from Program.cs lines 52-69.
-    """
+    """Handles binary pattern matching and patching for DBFZ executable."""
 
     @staticmethod
     def replace_pattern(exe_data: bytearray, pattern: str, new_bytes: bytes) -> int:
         """
         Scan for hex pattern and replace with new bytes.
-
-        This is a direct translation of the C# ReplacePattern function
-        from Program.cs lines 52-69.
 
         Args:
             exe_data: Full executable as mutable bytearray
@@ -65,8 +55,7 @@ class BinaryPatcher:
     @staticmethod
     def create_raid_patches(raid_index: int) -> Dict[str, Tuple[str, bytes]]:
         """
-        Generate all three patch configurations for a given raid.
-        Translates C# logic from Program.cs lines 21-44.
+        Generate all patch configurations for a given raid.
 
         Args:
             raid_index: Raid number (1-38)
@@ -80,18 +69,16 @@ class BinaryPatcher:
             }
         """
         # Convert raid index to little-endian 4-byte format
-        # This matches the C# code: BitConverter.GetBytes(int.Parse(args[1]))
         raid_bytes = raid_index.to_bytes(4, byteorder='little')
 
-        # Patch 1: Get Raid (Program.cs lines 22-29)
-        # Original: 8B 81 C4 53 1D 00 -> mov eax, [rcx+0x1D53C4]
-        # Replace with: B8 [RAID_INDEX] 90 -> mov eax, [immediate]; nop
+        # Patch 1: Get Raid
+        # Original: mov eax, [rcx+0x1D53C4]
+        # Replace: mov eax, <raid_index>; nop
         get_pattern = "8B 81 C4 53 1D 00"
         get_replacement = bytearray([0xB8]) + raid_bytes + bytearray([0x90])
 
-        # Patch 2: Set Raid (Program.cs lines 30-37)
-        # Original: 66 0F 73 DA 08 66 41 0F 7E 50 04 F2 0F 11 4C
-        # Replace with: 41 C7 40 04 [RAID_INDEX] 90 90 90
+        # Patch 2: Set Raid
+        # Replace with: mov dword ptr [r8+0x04], <raid_index>; nop x3
         set_pattern = "66 0F 73 DA 08 66 41 0F 7E 50 04 F2 0F 11 4C"
         set_replacement = (
             bytearray([0x41, 0xC7, 0x40, 0x04]) +
@@ -99,9 +86,9 @@ class BinaryPatcher:
             bytearray([0x90, 0x90, 0x90])
         )
 
-        # Patch 3: Raid Status (Program.cs lines 38-44)
-        # Original: 83 78 10 02 74 10 -> cmp dword ptr [rax+0x10], 2; je +0x10
-        # Replace with: 39 C0 90 90 -> cmp eax, eax; nop; nop
+        # Patch 3: Raid Status
+        # Original: cmp dword ptr [rax+0x10], 2; je +0x10
+        # Replace: cmp eax, eax; nop x2 (always sets ZF, bypasses check)
         status_pattern = "83 78 10 02 74 10"
         status_replacement = bytearray([0x39, 0xC0, 0x90, 0x90])
 

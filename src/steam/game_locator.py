@@ -231,9 +231,18 @@ class GameLocator:
             )
 
         if not self.validate_installation(game_root):
-            raise GameNotFoundError(
-                f"DBFZ installation at {game_root} appears corrupted. "
-                "Try verifying game files via Steam."
-            )
+            paths = self.get_file_paths(game_root)
+            if not paths['exe_directory'].exists():
+                raise GameNotFoundError(
+                    f"\nGame folder found but installation is incomplete (missing RED/Binaries/Win64).\n"
+                    "Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity\n"
+                    "If that doesn't work, reinstall the game\n"
+                )
+            else:
+                raise GameNotFoundError(
+                    f"\nGame folder found but executable is missing ({paths['clean_exe'].name}).\n"
+                    "Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity\n"
+                    "If that doesn't work, reinstall the game"
+                )
 
         return self.get_file_paths(game_root)
