@@ -4,9 +4,19 @@ DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid eve
 
 ### [DOWNLOAD](../../releases)
 
+## Read Before You Play
+
+To avoid desync issues during online raid play, **all players must be on the same local network (LAN)**. If you're playing with friends over the internet, use a VPN tunneling solution to simulate a LAN connection:
+
+- **Radmin VPN**
+- **Hamachi**
+- **Tailscale**
+
+Without LAN or VPN tunneling, you will likely experience severe desynchronization that makes raids unplayable.
+
 ## Table of Contents
 
-- [Overview](#overview)
+- [Read Before You Play](#read-before-you-play)
 - [Credits](#credits)
 - [Features](#features)
 - [Requirements](#requirements)
@@ -95,6 +105,7 @@ Some antivirus software may flag the patched executable or `DBFZ_Raid_Enabler.ex
 
 ### Desync Issues
 If you're experiencing major desynchronization issues during online play:
+- **Use LAN or VPN tunneling**: All players must be on the same local network. If playing over the internet, use VPN tunneling software like Radmin VPN, Hamachi, or ZeroTier
 - Ensure EAC (Easy Anti-Cheat) is properly uninstalled
 - Verify that **all players** are using the executable that was patched with this program
 - All players must be on the same patched version to avoid desync
