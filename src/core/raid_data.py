@@ -133,6 +133,48 @@ RAID_CHARACTERS = {
     38: ["BRS", "BSN", "BUK", "CEN", "CLF", "EST", "FRN", "GFF", "GKS", "HTN", "JNN", "JRN", "MGS", "NHY", "TRS", "VGB", "VGS", "VTB", "ZMB"],
 }
 
+# Risk levels (difficulty stars) for each raid
+RAID_RISK_LEVELS = {
+    1: 4,
+    2: 4,
+    3: 5,
+    4: 3,
+    5: 5,
+    6: 4,
+    7: 1,
+    8: 5,
+    9: 3,
+    10: 5,
+    11: 5,
+    12: 3,
+    13: 3,
+    14: 3,
+    15: 4,
+    16: 5,
+    17: 2,
+    18: 4,
+    19: 4,
+    20: 5,
+    21: 5,
+    22: 5,
+    23: 5,
+    24: 4,
+    25: 5,
+    26: 5,
+    27: 5,
+    28: 4,
+    29: 3,
+    30: 4,
+    31: 5,
+    32: 4,
+    33: 5,
+    34: 3,
+    35: 5,
+    36: 5,
+    37: 5,
+    38: 5,
+}
+
 RAID_BOSSES = {
     1: "The Emperor Strikes Back",
     2: "The Cell Games Main Event",
@@ -293,14 +335,27 @@ def get_raid_characters_str(raid_index: int) -> str:
     return ", ".join(get_raid_characters(raid_index))
 
 
-def get_all_raids_with_bosses() -> list[tuple[int, str, str, str]]:
+def get_raid_risk_level(raid_index: int) -> int:
     """
-    Get all raids as (index, name, boss, characters) tuples for UI display.
+    Get the risk level (difficulty stars) for a raid.
+
+    Args:
+        raid_index: Raid number (1-38)
 
     Returns:
-        List of (index, raid_name, boss_name, characters_str) tuples sorted by index
+        Risk level (1-5 stars)
+    """
+    return RAID_RISK_LEVELS.get(raid_index, 0)
+
+
+def get_all_raids_with_bosses() -> list[tuple[int, str, str, str, int]]:
+    """
+    Get all raids as (index, name, boss, characters, risk) tuples for UI display.
+
+    Returns:
+        List of (index, raid_name, boss_name, characters_str, risk_level) tuples sorted by index
     """
     return [
-        (idx, name, get_raid_boss(idx), get_raid_characters_str(idx))
+        (idx, name, get_raid_boss(idx), get_raid_characters_str(idx), get_raid_risk_level(idx))
         for idx, name in sorted(RAID_BOSSES.items())
     ]

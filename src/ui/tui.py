@@ -417,12 +417,14 @@ class DBFZRaidTUI:
         )
         table.add_column("#", style="cyan", justify="right", width=4)
         table.add_column("Raid Name", style="white", no_wrap=False)
+        table.add_column("Risk", style="red", justify="center", width=7)
         table.add_column("Final Boss", style="yellow", no_wrap=False, width=22)
         table.add_column("Enemies", style="dim", no_wrap=False)
 
         # Add rows (escape to prevent Rich markup interpretation)
-        for idx, name, boss, characters in raids:
-            table.add_row(str(idx), escape(name), escape(boss), escape(characters))
+        for idx, name, boss, characters, risk in raids:
+            risk_stars = "★" * risk
+            table.add_row(str(idx), escape(name), risk_stars, escape(boss), escape(characters))
 
         self.console.print(table)
         self.console.print()
