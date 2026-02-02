@@ -51,8 +51,11 @@ class BackupManager:
         3. Copy clean exe to patched exe location
         4. Return path to patched exe for patching
 
+        On Linux, if a backup exists (from previous patching), use that
+        instead since the original exe has been replaced with patched version.
+
         Args:
-            clean_exe: Path to original executable (never modified)
+            clean_exe: Path to original executable (never modified on Windows)
             patched_exe: Path to patched executable (will be created/overwritten)
 
         Returns:
@@ -61,8 +64,21 @@ class BackupManager:
         Raises:
             BackupError: If any operation fails
         """
-        # Verify clean exe exists
-        self.verify_clean_exe(clean_exe)
+        # On Linux, check if backup exists (means original was replaced)
+        source_exe = clean_exe
+        if IS_LINUX:
+            backup_exe = clean_exe.parent / "RED-Win64-Shipping.exe.backup"
+            if backup_exe.exists():
+                logger.info(f"Using backup as source: {backup_exe}")
+                source_exe = backup_exe
+
+        # Verify source exe exists
+        if not source_exe.exists():
+            logger.error(f"Source executable not found: {source_exe}")
+            raise BackupError(
+                f"Source executable not found at {source_exe}. "
+                "Please verify game files via Steam."
+            )
 
         # Remove old patched exe if it exists
         if patched_exe.exists():
@@ -73,10 +89,10 @@ class BackupManager:
                 logger.warning(f"Could not remove old patched exe: {e}")
                 # Continue anyway - copy will overwrite
 
-        # Copy clean exe to patched exe location
+        # Copy source exe to patched exe location
         try:
-            logger.info(f"Creating fresh patched exe from clean exe")
-            shutil.copy2(clean_exe, patched_exe)
+            logger.info(f"Creating fresh patched exe from source")
+            shutil.copy2(source_exe, patched_exe)
             logger.info(f"Patched exe ready: {patched_exe}")
             return patched_exe
         except Exception as e:
