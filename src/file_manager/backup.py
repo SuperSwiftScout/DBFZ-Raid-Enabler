@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional, Callable
 from utils.errors import BackupError
 from utils.logger import logger
+from utils.platform import get_shortcut_glob_pattern
 
 
 class BackupManager:
@@ -180,7 +181,7 @@ class BackupManager:
 
         # Remove all shortcuts in game root folder
         try:
-            for shortcut in game_root.glob("DBFZ Raid *.lnk"):
+            for shortcut in game_root.glob(get_shortcut_glob_pattern()):
                 try:
                     logger.info(f"Removing shortcut: {shortcut.name}")
                     shortcut.unlink()

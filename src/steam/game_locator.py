@@ -1,11 +1,37 @@
 """Unified Steam and DBFZ game location."""
 
-import winreg
+import sys
 import vdf
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
 from utils.errors import SteamNotFoundError, GameNotFoundError
 from utils.logger import logger
+
+# Platform detection
+IS_WINDOWS = sys.platform == "win32"
+IS_LINUX = sys.platform.startswith("linux")
+
+# Windows-only import
+if TYPE_CHECKING or IS_WINDOWS:
+    import winreg
+
+
+def _get_default_steam_paths() -> List[Path]:
+    """Get platform-specific default Steam paths."""
+    if IS_WINDOWS:
+        return [
+            Path(r"C:\Program Files (x86)\Steam"),
+            Path(r"C:\Program Files\Steam"),
+        ]
+    elif IS_LINUX:
+        return [
+            Path.home() / ".steam" / "steam",
+            Path.home() / ".local" / "share" / "Steam",
+            Path("/usr/share/steam"),
+            Path("/usr/local/share/steam"),
+        ]
+    else:
+        return []
 
 
 class GameLocator:
@@ -18,34 +44,31 @@ class GameLocator:
     GAME_FOLDER_NAME = "DRAGON BALL FighterZ"
     EXE_RELATIVE_PATH = Path("RED/Binaries/Win64/RED-Win64-Shipping.exe")
 
-    DEFAULT_STEAM_PATHS = [
-        Path(r"C:\Program Files (x86)\Steam"),
-        Path(r"C:\Program Files\Steam"),
-    ]
-
     def __init__(self):
         self._steam_path: Optional[Path] = None
         self._library_paths: Optional[List[Path]] = None
         self._game_root: Optional[Path] = None
+        self._default_steam_paths = _get_default_steam_paths()
 
     def _find_steam_installation(self) -> Optional[Path]:
-        """Locate Steam installation via registry, then fallback to default paths."""
+        """Locate Steam installation via registry (Windows) or common paths (Linux)."""
         if self._steam_path:
             return self._steam_path
 
-        # Try registry first
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
-                steam_path = Path(winreg.QueryValueEx(key, "SteamPath")[0])
-                if steam_path.exists():
-                    logger.info(f"Found Steam via registry: {steam_path}")
-                    self._steam_path = steam_path
-                    return steam_path
-        except OSError:
-            pass
+        # Try registry first (Windows only)
+        if IS_WINDOWS:
+            try:
+                with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam") as key:
+                    steam_path = Path(winreg.QueryValueEx(key, "SteamPath")[0])
+                    if steam_path.exists():
+                        logger.info(f"Found Steam via registry: {steam_path}")
+                        self._steam_path = steam_path
+                        return steam_path
+            except OSError:
+                pass
 
         # Fallback to default paths
-        for path in self.DEFAULT_STEAM_PATHS:
+        for path in self._default_steam_paths:
             if path.exists():
                 logger.info(f"Found Steam at default path: {path}")
                 self._steam_path = path
@@ -62,7 +85,7 @@ class GameLocator:
         libraries = [steam_path]
 
         if not vdf_path.exists():
-            logger.warning(f"libraryfolders.vdf not found, using main Steam path only")
+            logger.warning("libraryfolders.vdf not found, using main Steam path only")
             self._library_paths = libraries
             return libraries
 
@@ -234,7 +257,7 @@ class GameLocator:
             paths = self.get_file_paths(game_root)
             if not paths['exe_directory'].exists():
                 raise GameNotFoundError(
-                    f"\nGame folder found but installation is incomplete (missing RED/Binaries/Win64).\n"
+                    "\nGame folder found but installation is incomplete (missing RED/Binaries/Win64).\n"
                     "Verify game files: Right-click DBFZ in Steam → Properties → Installed Files → Verify integrity\n"
                     "If that doesn't work, reinstall the game\n"
                 )

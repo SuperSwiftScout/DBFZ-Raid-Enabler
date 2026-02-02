@@ -23,6 +23,7 @@ from utils.errors import (
     GameNotFoundError
 )
 from utils.logger import logger
+from utils.platform import IS_WINDOWS, IS_LINUX, get_shortcut_extension, get_shortcut_glob_pattern
 
 
 class DBFZRaidTUI:
@@ -189,18 +190,29 @@ class DBFZRaidTUI:
         Returns:
             Path to game root if found, None otherwise
         """
-        # Check multiple case variations and path formats
-        base_paths = [
-            (r"C:\Program Files (x86)\Steam", r"c:\program files (x86)\steam"),
-            (r"C:\Program Files\Steam", r"c:\program files\steam"),
-            (r"D:\SteamLibrary", r"d:\steamlibrary"),
-            (r"D:\Steam", r"d:\steam"),
-            (r"E:\SteamLibrary", r"e:\steamlibrary"),
-            (r"E:\Steam", r"e:\steam"),
-        ]
+        # Platform-specific common Steam library paths
+        if IS_WINDOWS:
+            base_paths = [
+                (r"C:\Program Files (x86)\Steam", r"c:\program files (x86)\steam"),
+                (r"C:\Program Files\Steam", r"c:\program files\steam"),
+                (r"D:\SteamLibrary", r"d:\steamlibrary"),
+                (r"D:\Steam", r"d:\steam"),
+                (r"E:\SteamLibrary", r"e:\steamlibrary"),
+                (r"E:\Steam", r"e:\steam"),
+            ]
+        elif IS_LINUX:
+            home = str(Path.home())
+            base_paths = [
+                (f"{home}/.steam/steam", f"{home}/.steam/steam"),
+                (f"{home}/.local/share/Steam", f"{home}/.local/share/Steam"),
+                ("/usr/share/steam", "/usr/share/steam"),
+                ("/usr/local/share/steam", "/usr/local/share/steam"),
+            ]
+        else:
+            base_paths = []
 
         for base_upper, base_lower in base_paths:
-            # Try both upper and lower case variations
+            # Try both variations (mainly for Windows case sensitivity)
             for base in [base_upper, base_lower]:
                 game_path = Path(base) / "steamapps" / "common" / "DRAGON BALL FighterZ"
                 exe_path = game_path / "RED" / "Binaries" / "Win64" / "RED-Win64-Shipping.exe"
@@ -308,7 +320,10 @@ class DBFZRaidTUI:
         """
         self.console.print()
         self.console.print("[red]Automatic detection failed. You can manually enter the game path.[/red]")
-        self.console.print("[dim]Example: C:\\Program Files (x86)\\Steam\\steamapps\\common\\DRAGON BALL FighterZ[/dim]")
+        if IS_WINDOWS:
+            self.console.print("[dim]Example: C:\\Program Files (x86)\\Steam\\steamapps\\common\\DRAGON BALL FighterZ[/dim]")
+        else:
+            self.console.print("[dim]Example: ~/.steam/steam/steamapps/common/DRAGON BALL FighterZ[/dim]")
         self.console.print()
 
         while True:
@@ -541,7 +556,7 @@ class DBFZRaidTUI:
 
             # Delete old shortcuts before creating new one
             try:
-                for old_shortcut in game_root.glob("DBFZ Raid *.lnk"):
+                for old_shortcut in game_root.glob(get_shortcut_glob_pattern()):
                     try:
                         logger.info(f"Removing old shortcut: {old_shortcut.name}")
                         old_shortcut.unlink()
@@ -551,7 +566,7 @@ class DBFZRaidTUI:
                 logger.warning(f"Error scanning for old shortcuts: {e}")
 
             # Generate shortcut filename
-            shortcut_name = f"DBFZ Raid {raid_index}.lnk"
+            shortcut_name = f"DBFZ Raid {raid_index}{get_shortcut_extension()}"
             shortcut_path = game_root / shortcut_name
 
             try:
@@ -601,8 +616,14 @@ class DBFZRaidTUI:
         # Ask if user wants to open the folder
         if Confirm.ask("Open folder where shortcut is located?", default=True):
             try:
-                import os
-                os.startfile(shortcut_path.parent)
+                import subprocess
+                folder_path = str(shortcut_path.parent)
+                if IS_WINDOWS:
+                    os.startfile(folder_path)
+                elif IS_LINUX:
+                    subprocess.run(['xdg-open', folder_path], check=False)
+                else:
+                    subprocess.run(['open', folder_path], check=False)  # macOS
             except Exception as e:
                 logger.warning(f"Could not open folder: {e}")
 

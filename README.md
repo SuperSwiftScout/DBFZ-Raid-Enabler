@@ -51,9 +51,10 @@ The pattern matching and binary patching techniques are based on Gneiss64's orig
 
 ## Requirements
 
-- Windows OS
+- Windows or Linux
 - Dragon Ball FighterZ installed via Steam
 - Python 3.13+ (for running from source)
+- On Linux: Steam with Proton enabled for DBFZ
 
 ## Compatibility
 
@@ -67,7 +68,7 @@ Currently tested and working with:
 1. Download the latest release from the [Releases](../../releases) page
 2. Run `DBFZ-Raid-Enabler.exe`
 
-### Option 2: From Source
+### Option 2: From Source (Windows)
 1. Clone the repository:
    ```bash
    git clone https://github.com/SuperSwiftStalker/DBFZ-Raid-Enabler.git
@@ -83,6 +84,25 @@ Currently tested and working with:
    ```bash
    python src/main.py
    ```
+
+### Option 3: From Source (Linux)
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/SuperSwiftStalker/DBFZ-Raid-Enabler.git
+   cd DBFZ-Raid-Enabler
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run the application:
+   ```bash
+   python3 src/main.py
+   ```
+
+**Note for Linux users**: DBFZ runs through Proton on Linux. The patcher modifies the Windows executable which Proton then runs. Ensure Steam Play/Proton is enabled for DBFZ before launching the patched game.
 
 ## Usage
 

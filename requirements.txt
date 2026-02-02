@@ -3,8 +3,8 @@
 # TUI Framework
 rich==13.7.0
 
-# Windows shortcut creation
-pywin32>=307
+# Windows shortcut creation (Windows only)
+pywin32>=307; sys_platform == "win32"
 
 # Steam VDF file parsing
 vdf==3.4
