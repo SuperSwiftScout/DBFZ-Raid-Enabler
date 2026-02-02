@@ -79,9 +79,15 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# Platform-specific executable name
+if is_linux:
+    exe_name = 'DBFZ_Raid_Enabler.bin'
+else:
+    exe_name = 'DBFZ_Raid_Enabler'
+
 # Platform-specific EXE options
 exe_kwargs = {
-    'name': 'DBFZ_Raid_Enabler',
+    'name': exe_name,
     'debug': False,
     'bootloader_ignore_signals': False,
     'strip': False,
