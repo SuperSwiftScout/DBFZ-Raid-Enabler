@@ -103,29 +103,42 @@ class ShortcutManager:
             steamapps_dir = exe_dir.parent.parent.parent.parent.parent
             wine_prefix = steamapps_dir / "compatdata" / "678950" / "pfx"
 
-            # Create shell script that runs the exe through Wine
+            # Create shell script that sets up the patched exe and launches through Steam
+            original_exe = target_exe.parent / "RED-Win64-Shipping.exe"
+            backup_exe = target_exe.parent / "RED-Win64-Shipping.exe.backup"
+
             script_content = f'''#!/bin/bash
 # DBFZ Raid Enabler - {raid_name}
-# Launch patched executable through Wine using Proton's prefix
+# Replaces the original exe with the patched one, then launches through Steam
+# Use the cleanup option in the patcher to restore the original exe
 
-WINEPREFIX="{wine_prefix}"
-GAME_EXE="{target_exe}"
+ORIGINAL_EXE="{original_exe}"
+PATCHED_EXE="{target_exe}"
+BACKUP_EXE="{backup_exe}"
 
-if [ ! -d "$WINEPREFIX" ]; then
-    echo "Error: Wine prefix not found at $WINEPREFIX"
-    echo "Make sure you've run DBFZ through Steam at least once."
+if [ ! -f "$PATCHED_EXE" ]; then
+    echo "Error: Patched executable not found at $PATCHED_EXE"
     read -p "Press Enter to exit..."
     exit 1
 fi
 
-if [ ! -f "$GAME_EXE" ]; then
-    echo "Error: Patched executable not found at $GAME_EXE"
-    read -p "Press Enter to exit..."
-    exit 1
+# Backup original exe if not already backed up
+if [ -f "$ORIGINAL_EXE" ] && [ ! -L "$ORIGINAL_EXE" ] && [ ! -f "$BACKUP_EXE" ]; then
+    echo "Backing up original executable..."
+    cp "$ORIGINAL_EXE" "$BACKUP_EXE"
 fi
 
-cd "{exe_dir}"
-WINEPREFIX="$WINEPREFIX" wine "$GAME_EXE"
+# Replace original with patched (copy, not symlink, for better compatibility)
+echo "Installing patched executable..."
+cp "$PATCHED_EXE" "$ORIGINAL_EXE"
+
+# Launch through Steam
+echo "Launching DBFZ through Steam..."
+steam steam://rungameid/678950 &
+
+echo ""
+echo "Game is launching through Steam."
+echo "To restore the original exe, use the cleanup option in the patcher."
 '''
 
             # Write the shell script

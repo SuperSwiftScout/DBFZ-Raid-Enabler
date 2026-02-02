@@ -92,17 +92,26 @@ Currently tested and working with:
    cd DBFZ-Raid-Enabler
    ```
 
-2. Install dependencies:
+2. Create and activate a virtual environment:
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Run the application:
+4. Run the application:
    ```bash
    python3 src/main.py
    ```
 
-**Note for Linux users**: DBFZ runs through Proton on Linux. The patcher modifies the Windows executable which Proton then runs. Ensure Steam Play/Proton is enabled for DBFZ before launching the patched game.
+**Linux Requirements:**
+- **Wine**: Required to launch the patched game. Install with: `sudo apt install wine` (Ubuntu/Debian) or `sudo dnf install wine` (Fedora)
+- **Steam with Proton**: Run DBFZ through Steam at least once before using this tool (this creates the Wine prefix)
+- The patcher creates a shell script that launches the patched exe through Wine using Proton's prefix
 
 ## Usage
 
@@ -162,8 +171,9 @@ The core raid patterns are based on the original C# implementation, with additio
 ## Logs
 
 The application creates detailed logs for troubleshooting purposes:
-- **Location**: `%USERPROFILE%\.dbfz_raid_enabler\dbfz_raid.log`
-- **Quick Access**: Press `Win + R`, type `%USERPROFILE%\.dbfz_raid_enabler`, and press Enter
+- **Windows**: `%USERPROFILE%\.dbfz_raid_enabler\dbfz_raid.log`
+  - Quick Access: Press `Win + R`, type `%USERPROFILE%\.dbfz_raid_enabler`, and press Enter
+- **Linux**: `~/.dbfz_raid_enabler/dbfz_raid.log`
 
 ## Building
 
@@ -193,7 +203,8 @@ src/
 │   └── tui.py            # Terminal UI framework
 └── utils/
     ├── errors.py          # Error definitions
-    └── logger.py          # Logging utilities
+    ├── logger.py          # Logging utilities
+    └── platform.py        # Cross-platform utilities
 ```
 
 ## Disclaimer

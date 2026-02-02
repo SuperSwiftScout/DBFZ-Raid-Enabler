@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional, Callable
 from utils.errors import BackupError
 from utils.logger import logger
-from utils.platform import get_shortcut_glob_pattern
+from utils.platform import get_shortcut_glob_pattern, IS_LINUX
 
 
 class BackupManager:
@@ -134,7 +134,8 @@ class BackupManager:
         - All raid shortcuts (in game folder)
         - Application log directory (~/.dbfz_raid_enabler)
 
-        Note: Clean exe is never modified, so nothing to restore.
+        On Linux:
+        - Restores original executable from backup (created by launch script)
 
         Args:
             patched_exe: Path to patched executable
@@ -145,6 +146,7 @@ class BackupManager:
             Dictionary with cleanup results:
             {
                 'patched_exe_removed': bool,
+                'original_restored': bool,  # Linux only
                 'shortcuts_removed': int,
                 'logs_removed': bool,
                 'errors': [str]
@@ -154,6 +156,7 @@ class BackupManager:
 
         results = {
             'patched_exe_removed': False,
+            'original_restored': False,
             'shortcuts_removed': 0,
             'logs_removed': False,
             'errors': []
@@ -174,6 +177,29 @@ class BackupManager:
                 results['errors'].append(error_msg)
         else:
             logger.info("Patched exe not found, nothing to remove")
+
+        # On Linux, restore original exe from backup if it exists
+        # The shell script creates a backup at RED-Win64-Shipping.exe.backup
+        if IS_LINUX:
+            exe_dir = patched_exe.parent
+            original_exe = exe_dir / "RED-Win64-Shipping.exe"
+            backup_exe = exe_dir / "RED-Win64-Shipping.exe.backup"
+
+            if backup_exe.exists():
+                try:
+                    if progress_callback:
+                        progress_callback("Restoring original executable...")
+                    logger.info(f"Restoring original exe from backup: {backup_exe}")
+                    shutil.copy2(backup_exe, original_exe)
+                    backup_exe.unlink()
+                    results['original_restored'] = True
+                    logger.info("Original exe restored successfully")
+                except Exception as e:
+                    error_msg = f"Failed to restore original exe: {e}"
+                    logger.error(error_msg)
+                    results['errors'].append(error_msg)
+            else:
+                logger.info("No backup found, original exe may not have been replaced")
 
         # Update status
         if progress_callback:
