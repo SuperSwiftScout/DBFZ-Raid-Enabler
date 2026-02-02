@@ -551,6 +551,14 @@ class DBFZRaidTUI:
 
             progress.advance(task)
 
+            # Step 3.5: On Linux, install patched exe over original
+            if IS_LINUX:
+                progress.update(task, description="Installing patched executable...")
+                if self.backup_manager.install_patched_exe_linux(paths['patched_exe']):
+                    self.console.print("[green]✓ Patched executable installed[/green]")
+                else:
+                    self.console.print("[yellow]⚠ Could not install patched exe automatically[/yellow]")
+
             # Step 4: Create shortcuts
             progress.update(task, description="Creating shortcuts...")
 

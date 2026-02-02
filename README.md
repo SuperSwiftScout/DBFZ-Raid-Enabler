@@ -109,9 +109,8 @@ Currently tested and working with:
    ```
 
 **Linux Requirements:**
-- **Wine**: Required to launch the patched game. Install with: `sudo apt install wine` (Ubuntu/Debian) or `sudo dnf install wine` (Fedora)
-- **Steam with Proton**: Run DBFZ through Steam at least once before using this tool (this creates the Wine prefix)
-- The patcher creates a shell script that launches the patched exe through Wine using Proton's prefix
+- **Steam with Proton**: Run DBFZ through Steam at least once before using this tool
+- The patcher installs the patched exe and creates a shell script to launch the game through Steam
 
 ## Usage
 

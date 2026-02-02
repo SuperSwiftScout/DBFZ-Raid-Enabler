@@ -125,6 +125,43 @@ class BackupManager:
             logger.error(f"Failed to detect current patch: {e}")
             return None
 
+    def install_patched_exe_linux(self, patched_exe: Path) -> bool:
+        """
+        Install patched exe by copying it over the original (Linux only).
+
+        This backs up the original exe first, then copies the patched exe
+        over the original so Steam launches the patched version.
+
+        Args:
+            patched_exe: Path to the patched executable
+
+        Returns:
+            True if installation succeeded
+        """
+        if not IS_LINUX:
+            return False
+
+        exe_dir = patched_exe.parent
+        original_exe = exe_dir / "RED-Win64-Shipping.exe"
+        backup_exe = exe_dir / "RED-Win64-Shipping.exe.backup"
+
+        try:
+            # Backup original exe if not already backed up
+            if original_exe.exists() and not backup_exe.exists():
+                logger.info(f"Backing up original exe to: {backup_exe}")
+                shutil.copy2(original_exe, backup_exe)
+
+            # Copy patched exe over original
+            logger.info(f"Installing patched exe over original")
+            shutil.copy2(patched_exe, original_exe)
+
+            logger.info("Patched exe installed successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to install patched exe: {e}")
+            return False
+
     def cleanup_all(self, patched_exe: Path, game_root: Path, progress_callback: Optional[Callable[[str], None]] = None) -> dict:
         """
         Clean up all modifications made by the program.

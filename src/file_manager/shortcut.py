@@ -89,56 +89,21 @@ class ShortcutManager:
         shortcut_path: Path,
         raid_name: str
     ) -> Path:
-        """Create Linux shell script for launching patched exe via Wine/Proton."""
+        """Create Linux shell script for launching DBFZ through Steam."""
         try:
             # Change extension from .desktop to .sh for shell script
             shortcut_path = shortcut_path.with_suffix('.sh')
             logger.info(f"Creating Linux launch script: {shortcut_path}")
 
-            # Derive the Wine prefix path from the game location
-            # Game is at: .../steamapps/common/DRAGON BALL FighterZ/...
-            # Prefix is at: .../steamapps/compatdata/678950/pfx
-            exe_dir = target_exe.parent
-            # Navigate up to steamapps: RED/Binaries/Win64 -> game_root -> common -> steamapps
-            steamapps_dir = exe_dir.parent.parent.parent.parent.parent
-            wine_prefix = steamapps_dir / "compatdata" / "678950" / "pfx"
-
-            # Create shell script that sets up the patched exe and launches through Steam
-            original_exe = target_exe.parent / "RED-Win64-Shipping.exe"
-            backup_exe = target_exe.parent / "RED-Win64-Shipping.exe.backup"
-
             script_content = f'''#!/bin/bash
 # DBFZ Raid Enabler - {raid_name}
-# Replaces the original exe with the patched one, then launches through Steam
+# Launches DBFZ through Steam with the patched executable installed
 # Use the cleanup option in the patcher to restore the original exe
 
-ORIGINAL_EXE="{original_exe}"
-PATCHED_EXE="{target_exe}"
-BACKUP_EXE="{backup_exe}"
-
-if [ ! -f "$PATCHED_EXE" ]; then
-    echo "Error: Patched executable not found at $PATCHED_EXE"
-    read -p "Press Enter to exit..."
-    exit 1
-fi
-
-# Backup original exe if not already backed up
-if [ -f "$ORIGINAL_EXE" ] && [ ! -L "$ORIGINAL_EXE" ] && [ ! -f "$BACKUP_EXE" ]; then
-    echo "Backing up original executable..."
-    cp "$ORIGINAL_EXE" "$BACKUP_EXE"
-fi
-
-# Replace original with patched (copy, not symlink, for better compatibility)
-echo "Installing patched executable..."
-cp "$PATCHED_EXE" "$ORIGINAL_EXE"
-
-# Launch through Steam
-echo "Launching DBFZ through Steam..."
+echo "Launching DBFZ ({raid_name}) through Steam..."
 steam steam://rungameid/678950 &
 
-echo ""
 echo "Game is launching through Steam."
-echo "To restore the original exe, use the cleanup option in the patcher."
 '''
 
             # Write the shell script
