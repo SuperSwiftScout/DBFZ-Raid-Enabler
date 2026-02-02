@@ -162,10 +162,19 @@ The core raid patterns are based on the original C# implementation, with additio
 
 ## How Patching Works
 
-- The tool creates a copy of your original executable (`RED-Win64-Shipping-Raid.exe`)
+### Windows
+- The tool creates a copy of your original executable (`RED-Win64-Shipping-eac-nop-loaded.exe`)
 - Your original `RED-Win64-Shipping.exe` is never modified and remains intact
 - All patches are applied to the copy, keeping your game installation safe
+- The shortcut points directly to the patched executable
 - You can delete the patched executable anytime to return to vanilla gameplay
+
+### Linux
+- The tool creates a patched executable (`RED-Win64-Shipping-eac-nop-loaded.exe`)
+- Your original executable is backed up to `RED-Win64-Shipping.exe.backup`
+- The patched executable is copied over the original (Steam always launches by filename)
+- A shell script is created to launch the game through Steam
+- Use the cleanup option in the patcher to restore the original executable
 
 ## Logs
 

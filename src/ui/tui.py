@@ -92,7 +92,7 @@ class DBFZRaidTUI:
         """Display application header."""
         header = Panel(
             "[bold cyan]DBFZ Raid Enabler[/bold cyan]\n"
-            "[dim]Version 1.1.2[/dim]\n"
+            "[dim]Version 1.2.2[/dim]\n"
             "[dim]Intended for DBFZ Version 4.17.2.0[/dim]\n"
             "[dim]Python tool to patch Dragon Ball FighterZ to enable raid battles again.[/dim]",
             box=box.DOUBLE,
