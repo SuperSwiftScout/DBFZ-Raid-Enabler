@@ -594,30 +594,57 @@ class DBFZRaidTUI:
         self.console.print()
 
         # EAC Warning Panel
-        eac_panel = Panel(
-            f"[bold yellow]IMPORTANT: EasyAntiCheat[/bold yellow]\n\n"
-            f"You need to manually uninstall EasyAntiCheat for the patch to work.\n"
-            f"[bold yellow]→ You can disregard this message if you have already uninstalled EasyAntiCheat.[/bold yellow]\n\n"
-            f"[bold]To uninstall EAC:[/bold]\n"
-            f"Run: [cyan]{escape(str(game_root))}\\EasyAntiCheat\\EasyAntiCheat_Setup.exe[/cyan]\n"
-            f"Then click 'Uninstall'",
-            box=box.ROUNDED,
-            border_style="yellow",
-            title="Action May Be Required"
-        )
+        if IS_LINUX:
+            eac_panel = Panel(
+                f"[bold yellow]IMPORTANT: EasyAntiCheat[/bold yellow]\n\n"
+                f"You need to manually uninstall EasyAntiCheat for the patch to work.\n"
+                f"[bold yellow]→ You can disregard this message if you have already uninstalled EasyAntiCheat.[/bold yellow]\n\n"
+                f"[bold]To uninstall EAC on Linux:[/bold]\n"
+                f"1. Install Wine if not already installed: [cyan]sudo apt install wine[/cyan]\n"
+                f"2. Run: [cyan]wine \"{escape(str(game_root))}/EasyAntiCheat/EasyAntiCheat_Setup.exe\"[/cyan]\n"
+                f"3. Click 'Uninstall' in the EAC window",
+                box=box.ROUNDED,
+                border_style="yellow",
+                title="Action May Be Required"
+            )
+        else:
+            eac_panel = Panel(
+                f"[bold yellow]IMPORTANT: EasyAntiCheat[/bold yellow]\n\n"
+                f"You need to manually uninstall EasyAntiCheat for the patch to work.\n"
+                f"[bold yellow]→ You can disregard this message if you have already uninstalled EasyAntiCheat.[/bold yellow]\n\n"
+                f"[bold]To uninstall EAC:[/bold]\n"
+                f"Run: [cyan]{escape(str(game_root))}\\EasyAntiCheat\\EasyAntiCheat_Setup.exe[/cyan]\n"
+                f"Then click 'Uninstall'",
+                box=box.ROUNDED,
+                border_style="yellow",
+                title="Action May Be Required"
+            )
         self.console.print(eac_panel)
         self.console.print()
 
-        success_panel = Panel(
-            f"[bold green]Patching Complete![/bold green]\n\n"
-            f"Raid: [cyan]{raid_index}[/cyan]\n"
-            f"Patches applied: [cyan]{len(result['offsets'])}[/cyan]\n\n"
-            f"[bold]Launch:[/bold] [cyan]{shortcut_name}[/cyan]\n"
-            f"[dim]Located in: {escape(str(game_root))}[/dim]",
-            box=box.DOUBLE,
-            border_style="green",
-            title="Success"
-        )
+        if IS_LINUX:
+            success_panel = Panel(
+                f"[bold green]Patching Complete![/bold green]\n\n"
+                f"Raid: [cyan]{raid_index}[/cyan]\n"
+                f"Patches applied: [cyan]{len(result['offsets'])}[/cyan]\n\n"
+                f"[bold]Launch:[/bold] Start DBFZ normally through Steam\n"
+                f"[dim]Or use the shortcut: {shortcut_name}[/dim]\n"
+                f"[dim]Located in: {escape(str(game_root))}[/dim]",
+                box=box.DOUBLE,
+                border_style="green",
+                title="Success"
+            )
+        else:
+            success_panel = Panel(
+                f"[bold green]Patching Complete![/bold green]\n\n"
+                f"Raid: [cyan]{raid_index}[/cyan]\n"
+                f"Patches applied: [cyan]{len(result['offsets'])}[/cyan]\n\n"
+                f"[bold]Launch:[/bold] [cyan]{shortcut_name}[/cyan]\n"
+                f"[dim]Located in: {escape(str(game_root))}[/dim]",
+                box=box.DOUBLE,
+                border_style="green",
+                title="Success"
+            )
         self.console.print(success_panel)
         self.console.print()
         

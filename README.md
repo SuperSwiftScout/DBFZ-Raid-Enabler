@@ -14,9 +14,36 @@ To avoid desync issues during online raid play, **all players must be on the sam
 
 Without LAN or VPN tunneling, you will likely experience severe desynchronization that makes raids unplayable.
 
+## Usage Guide
+
+### Basic Usage (Both Platforms)
+
+1. Run the patcher and select a raid
+2. Uninstall EAC if you haven't already (the patcher shows instructions)
+3. Launch the game and enjoy the raid!
+
+**Switching Raids**: To switch to a different raid, close the game first, then run the patcher again and select the new raid.
+
+### Windows Behavior
+
+- The patcher creates a **separate patched executable** (`RED-Win64-Shipping-eac-nop-loaded.exe`)
+- Your original game files are never modified
+- **Launching through Steam** runs the **unpatched** (vanilla) version
+- **Use the shortcut** created in your game folder to run the **patched** version
+- You can switch between patched and unpatched by choosing how you launch
+
+### Linux Behavior
+
+- The patcher **backs up** your original executable and **overwrites** it with the patched version
+- This is necessary because Steam/Proton always launches by filename
+- **Launching through Steam** runs the **patched** version (since the original is replaced)
+- To play vanilla again, use the **cleanup option** in the patcher to restore the original executable
+- Re-patching for a different raid automatically uses the backup as source
+
 ## Table of Contents
 
 - [Read Before You Play](#read-before-you-play)
+- [Usage Guide](#platform-usage-guide)
 - [Credits](#credits)
 - [Features](#features)
 - [Requirements](#requirements)

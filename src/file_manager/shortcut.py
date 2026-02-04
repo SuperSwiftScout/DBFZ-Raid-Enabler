@@ -11,10 +11,8 @@ from utils.logger import logger
 IS_WINDOWS = sys.platform == "win32"
 IS_LINUX = sys.platform.startswith("linux")
 
-# Windows-only import with type checking support
-if TYPE_CHECKING:
-    import win32com.client as win32com_client
-elif IS_WINDOWS:
+# Windows-only import (also import during type checking for IDE support)
+if IS_WINDOWS or TYPE_CHECKING:
     import win32com.client as win32com_client
 
 
