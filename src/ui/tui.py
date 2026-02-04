@@ -555,7 +555,7 @@ class DBFZRaidTUI:
             if IS_LINUX:
                 progress.update(task, description="Installing patched executable...")
                 if self.backup_manager.install_patched_exe_linux(paths['patched_exe']):
-                    self.console.print("[green]✓ Patched executable installed[/green]")
+                    self.console.print("[green]✓ Original backed up, patched exe installed in its place[/green]")
                 else:
                     self.console.print("[yellow]⚠ Could not install patched exe automatically[/yellow]")
 
@@ -678,8 +678,13 @@ class DBFZRaidTUI:
         self.console.print("  • Patched executable (RED-Win64-Shipping-eac-nop-loaded.exe)")
         self.console.print("  • All raid shortcuts (in game folder)")
         self.console.print("  • Application logs directory (~/.dbfz_raid_enabler)")
-        self.console.print()
-        self.console.print("[dim]Note: Original game files are never modified[/dim]")
+        if IS_LINUX:
+            self.console.print("  • Restore original executable from backup")
+            self.console.print()
+            self.console.print("[dim]Note: Your original executable will be restored from the backup[/dim]")
+        else:
+            self.console.print()
+            self.console.print("[dim]Note: Original game files are never modified[/dim]")
         self.console.print()
 
         if not Confirm.ask("Are you sure you want to cleanup?", default=False):
@@ -731,6 +736,14 @@ class DBFZRaidTUI:
             else:
                 self.console.print("[dim]• No raid shortcuts found[/dim]")
 
+            # On Linux, show original exe restoration status
+            if IS_LINUX:
+                if result.get('original_restored'):
+                    items_removed.append("Original executable restored from backup")
+                    self.console.print("[green]✓ Original executable restored from backup[/green]")
+                else:
+                    self.console.print("[dim]• No backup found (original may not have been replaced)[/dim]")
+
             # Logs directory removal
             if result.get('logs_removed'):
                 items_removed.append("Application logs directory")
@@ -766,16 +779,28 @@ class DBFZRaidTUI:
             # Success message
             self.console.print()
             if items_removed:
-                cleanup_panel = Panel(
-                    f"[bold green]Cleanup Complete![/bold green]\n\n"
-                    f"Removed:\n" +
-                    "\n".join(f"  • {item}" for item in items_removed) + "\n\n"
-                    f"[dim]Original game files remain untouched[/dim]\n"
-                    f"[dim]To reinstall EAC, run \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\DRAGON BALL FighterZ\\EasyAntiCheat\\EasyAntiCheat_Setup.exe\"[/dim]",
-                    box=box.DOUBLE,
-                    border_style="green",
-                    title="Success"
-                )
+                if IS_LINUX:
+                    cleanup_panel = Panel(
+                        f"[bold green]Cleanup Complete![/bold green]\n\n"
+                        f"Completed:\n" +
+                        "\n".join(f"  • {item}" for item in items_removed) + "\n\n"
+                        f"[dim]Your game is now back to vanilla state[/dim]\n"
+                        f"[dim]To reinstall EAC: wine \"{escape(str(game_root))}/EasyAntiCheat/EasyAntiCheat_Setup.exe\"[/dim]",
+                        box=box.DOUBLE,
+                        border_style="green",
+                        title="Success"
+                    )
+                else:
+                    cleanup_panel = Panel(
+                        f"[bold green]Cleanup Complete![/bold green]\n\n"
+                        f"Removed:\n" +
+                        "\n".join(f"  • {item}" for item in items_removed) + "\n\n"
+                        f"[dim]Original game files remain untouched[/dim]\n"
+                        f"[dim]To reinstall EAC, run \"{escape(str(game_root))}\\EasyAntiCheat\\EasyAntiCheat_Setup.exe\"[/dim]",
+                        box=box.DOUBLE,
+                        border_style="green",
+                        title="Success"
+                    )
             else:
                 cleanup_panel = Panel(
                     f"[bold yellow]Nothing to Clean[/bold yellow]\n\n"
