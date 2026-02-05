@@ -49,7 +49,6 @@ Without LAN or VPN tunneling, you will likely experience severe desynchronizatio
 - [Requirements](#requirements)
 - [Compatibility](#compatibility)
 - [Installation](#installation)
-- [Usage](#usage)
 - [Troubleshooting](#troubleshooting)
 - [How It Works](#how-it-works)
 - [How Patching Works](#how-patching-works)
@@ -138,16 +137,6 @@ Currently tested and working with:
 **Linux Requirements:**
 - **Steam with Proton**: Run DBFZ through Steam at least once before using this tool
 - The patcher installs the patched exe and creates a shell script to launch the game through Steam
-
-## Usage
-
-1. Launch the application
-2. The tool will automatically locate your DBFZ installation
-3. Select the raid battle you want to enable
-4. Confirm the patching operation
-5. Uninstall EAC (If not already uninstalled)
-6. A shortcut will be created in your game folder for easy access
-7. Launch the game and enjoy the raid battle!
 
 ## Troubleshooting
 
