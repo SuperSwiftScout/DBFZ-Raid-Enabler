@@ -14,6 +14,8 @@ To avoid desync issues during online raid play, **all players must be on the sam
 
 Without LAN or VPN tunneling, you will likely experience severe desynchronization that makes raids unplayable.
 
+All players must also be on the **same netcode**.
+
 ## Table of Contents
 
 - [Read Before You Play](#read-before-you-play)
