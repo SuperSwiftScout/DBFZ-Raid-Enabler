@@ -93,9 +93,8 @@ class BinaryPatcher:
         status_replacement = bytearray([0x39, 0xC0, 0x90, 0x90])
 
         # Patch 4: FCup Popup Skip
-        # Original: 45 33 C0 48 8D 8B C0 10 00 00 E8 66 B8 FA FF
         # Replace with: NOP the popup CALL to prevent FCup popup softlock
-        skip_fcup_caller_pattern = "45 33 C0 48 8D 8B C0 10 00 00 E8 66 B8 FA FF"
+        skip_fcup_caller_pattern = "45 33 C0 48 8D 8B C0 10 00 00 E8 56 B8 FA FF"
         skip_fcup_caller_replacement = bytes([
             0x45, 0x33, 0xC0,                          # XOR R8D, R8D
             0x48, 0x8D, 0x8B, 0xC0, 0x10, 0x00, 0x00,  # LEA RCX, [RBX+0x10c0]
@@ -103,11 +102,10 @@ class BinaryPatcher:
         ])
 
         # Patch 5: Partybattle Popup Skip
-        # Original: E8 AC 5E FF FF 84 C0 74 2A -> CALL + TEST + JZ
         # Replace with: Change JZ to JMP to prevent Partybattle popup softlock
-        skip_partybattle_pattern = "E8 AC 5E FF FF 84 C0 74 2A"
+        skip_partybattle_pattern = "E8 BC 60 FF FF 84 C0 74 2A"
         skip_partybattle_replacement = bytes([
-            0xE8, 0xAC, 0x5E, 0xFF, 0xFF,  # CALL FUN_14048ccb0
+            0xE8, 0xBC, 0x60, 0xFF, 0xFF,  # CALL FUN_14048d150
             0x84, 0xC0,                    # TEST AL, AL
             0xEB, 0x2A                     # JMP +0x2a (always skip)
         ])
