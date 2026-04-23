@@ -13,16 +13,35 @@ from pathlib import Path
 from typing import Optional, Dict, Union
 
 from core.patcher import BinaryPatcher
-from core.raid_data import get_all_raids_with_bosses
+from core.raid_data import get_all_raids_with_bosses, CHARACTER_CODES
+from core.custom_raid import CustomRaid, RaidBattle, list_saved_raids, CUSTOM_RAIDS_DIR
+from core.aes_key import get_aes_key, validate_user_key
 from steam.game_locator import GameLocator
 from file_manager.backup import BackupManager
 from file_manager.shortcut import ShortcutManager
 from utils.errors import (
     DBFZRaidError,
     SteamNotFoundError,
-    GameNotFoundError
+    GameNotFoundError,
+    AESKeyError,
+    PakError,
 )
 from utils.logger import logger
+
+# Raid slot used for custom raids — chosen for its generic name
+CUSTOM_RAID_SLOT = 38
+
+_DEFAULT_BACKGROUNDS = [
+    "Town_PL",
+    "Wasteland_PL",
+    "Volcano_PL",
+    "TownDestroy_PL",
+    "Space_PL",
+    "Kaiousinkai_PL",
+    "Rocky_PL",
+]
+_DEFAULT_BGM = "035_main_raid"
+_DEFAULT_SKILL_NUM = 506
 
 
 class DBFZRaidTUI:
@@ -69,6 +88,11 @@ class DBFZRaidTUI:
                         continue
 
                     # After cleanup attempt (successful or failed), exit app
+                    return
+                elif selection == 'custom_raid':
+                    result = self.show_custom_raid_menu(game_info)
+                    if result is False:
+                        continue
                     return
                 elif isinstance(selection, int):
                     result = self.execute_patch_workflow(game_info, selection, current_raid)
@@ -438,18 +462,21 @@ class DBFZRaidTUI:
         while True:
             try:
                 choice = Prompt.ask(
-                    "Select a raid (1-39), 'c' to cleanup, or 'q' to quit",
+                    "Select a raid (1-39), 'r' for custom raid, 'c' to cleanup, or 'q' to quit",
                     console=self.console
                 )
 
                 choice_lower = choice.lower()
 
                 if choice_lower == 'q':
-                    self.console.print()  # blank line for visual separation
+                    self.console.print()
                     return None
 
                 if choice_lower == 'c':
                     return 'cleanup'
+
+                if choice_lower == 'r':
+                    return 'custom_raid'
 
                 raid_idx = int(choice)
                 if 1 <= raid_idx <= 39:
@@ -791,3 +818,335 @@ class DBFZRaidTUI:
             self.console.print(f"[red]Failed to remove logs: {e}[/red]")
 
         self.console.print()
+
+    # -------------------------------------------------------------------------
+    # Custom raid
+    # -------------------------------------------------------------------------
+
+    def show_custom_raid_menu(self, game_info) -> bool:
+        """
+        Show custom raid sub-menu (create or load).
+
+        Returns:
+            False to return to main menu, None/True otherwise
+        """
+        self.console.print()
+        self.console.print(Panel(
+            "[bold cyan]Custom Raids[/bold cyan]\n"
+            "[dim]Build your own raid and share it with friends[/dim]",
+            box=box.ROUNDED,
+            border_style="cyan"
+        ))
+        self.console.print()
+        self.console.print("  [cyan]1[/cyan]  Create a new custom raid")
+        self.console.print("  [cyan]2[/cyan]  Load a saved custom raid")
+        self.console.print("  [cyan]b[/cyan]  Back")
+        self.console.print()
+
+        while True:
+            try:
+                choice = Prompt.ask("Select an option", console=self.console).strip().lower()
+                if choice == '1':
+                    self.create_custom_raid_wizard()
+                    return False
+                elif choice == '2':
+                    return self.load_custom_raid_workflow(game_info)
+                elif choice == 'b':
+                    return False
+                else:
+                    self.console.print("[red]Invalid option.[/red]")
+            except KeyboardInterrupt:
+                self.console.print()
+                return False
+
+    def _show_character_table(self):
+        """Display a compact reference table of all character codes."""
+        table = Table(
+            title="Character Codes",
+            show_header=True,
+            header_style="bold magenta",
+            box=box.SIMPLE,
+        )
+        table.add_column("Code", style="cyan", width=6)
+        table.add_column("Name", width=24)
+        table.add_column("Code", style="cyan", width=6)
+        table.add_column("Name", width=24)
+
+        chars = [(k, v) for k, v in CHARACTER_CODES.items() if k != "AAA"]
+        chars.sort(key=lambda x: x[1])
+
+        for i in range(0, len(chars), 2):
+            left = chars[i]
+            right = chars[i + 1] if i + 1 < len(chars) else ("", "")
+            table.add_row(left[0], left[1], right[0], right[1])
+
+        self.console.print(table)
+        self.console.print()
+
+    def _prompt_character(self, label: str) -> str:
+        """Prompt for a valid 3-letter character code."""
+        while True:
+            try:
+                code = Prompt.ask(f"  {label}", console=self.console).strip().upper()
+                if len(code) == 3 and code.isalpha():
+                    name = CHARACTER_CODES.get(code, None)
+                    if name:
+                        self.console.print(f"  [dim]→ {name}[/dim]")
+                    else:
+                        self.console.print(f"  [yellow]Unknown code '{code}' — will be used as-is[/yellow]")
+                    return code
+                else:
+                    self.console.print("  [red]Enter a 3-letter code (e.g. GKS)[/red]")
+            except KeyboardInterrupt:
+                self.console.print()
+                return ""
+
+    def create_custom_raid_wizard(self) -> Optional[CustomRaid]:
+        """
+        Interactive wizard to build a custom raid and save it as JSON.
+
+        Returns:
+            Saved CustomRaid, or None if cancelled
+        """
+        self.console.print()
+        self.console.print("[bold]Create Custom Raid[/bold]")
+        self.console.print("[dim]Press Ctrl+C at any time to cancel[/dim]")
+        self.console.print()
+
+        try:
+            name = Prompt.ask("Raid name", console=self.console).strip()
+            if not name:
+                return None
+
+            level_str = Prompt.ask("Default level for all battles", default="70", console=self.console).strip()
+            try:
+                default_level = max(1, min(100, int(level_str)))
+            except ValueError:
+                default_level = 70
+
+            self.console.print()
+            self._show_character_table()
+
+            battles = []
+            for i in range(7):
+                self.console.print(f"[bold cyan]Battle {i + 1} of 7[/bold cyan]")
+
+                char1 = self._prompt_character("Boss (Char1)")
+                if not char1:
+                    return None
+                char2 = self._prompt_character("Support (Char2)")
+                if not char2:
+                    return None
+                char3 = self._prompt_character("Support (Char3)")
+                if not char3:
+                    return None
+
+                level_str = Prompt.ask(f"  Level", default=str(default_level), console=self.console)
+                try:
+                    level = max(1, min(100, int(level_str)))
+                except ValueError:
+                    level = default_level
+
+                battles.append(RaidBattle(
+                    battle_no=i,
+                    char1=char1,
+                    char2=char2,
+                    char3=char3,
+                    level=level,
+                    skill_num=_DEFAULT_SKILL_NUM,
+                    background=_DEFAULT_BACKGROUNDS[i],
+                    bgm=_DEFAULT_BGM,
+                ))
+                self.console.print()
+
+            raid = CustomRaid(name=name, battles=battles)
+            saved_path = raid.save()
+
+            self.console.print(Panel(
+                f"[bold green]Raid saved![/bold green]\n\n"
+                f"[white]{name}[/white]\n"
+                f"[dim]{saved_path}[/dim]\n\n"
+                f"Share the JSON file with friends — they can load it from the custom raid menu.",
+                box=box.ROUNDED,
+                border_style="green",
+                title="Success"
+            ))
+            self.console.print()
+            self.console.print("[dim]Press Enter to continue...[/dim]")
+            input()
+            return raid
+
+        except KeyboardInterrupt:
+            self.console.print()
+            self.console.print("[yellow]Cancelled.[/yellow]")
+            return None
+
+    def load_custom_raid_workflow(self, game_info) -> bool:
+        """
+        Load a saved custom raid JSON and apply it to the game.
+
+        Returns:
+            False to return to menu
+        """
+        saved = list_saved_raids()
+
+        # Also scan next to the patcher executable for dropped-in JSONs
+        import sys
+        exe_dir = Path(sys.executable).parent if getattr(sys, 'frozen', False) else Path(__file__).parent.parent.parent
+        for f in sorted(exe_dir.glob("*.json")):
+            if f not in saved:
+                saved.append(f)
+
+        if not saved:
+            self.console.print()
+            self.console.print(
+                f"[yellow]No custom raids found.[/yellow]\n"
+                f"[dim]Place .json files in:[/dim]\n"
+                f"[dim]  {CUSTOM_RAIDS_DIR}[/dim]\n"
+                f"[dim]  or next to the patcher executable[/dim]"
+            )
+            self.console.print()
+            self.console.print("[dim]Press Enter to continue...[/dim]")
+            input()
+            return False
+
+        self.console.print()
+        self.console.print("[bold]Load Custom Raid[/bold]")
+        self.console.print()
+
+        for i, path in enumerate(saved, 1):
+            try:
+                raid = CustomRaid.load(path)
+                status = f"{len(raid.battles)} battles" if raid.is_complete() else "[yellow]incomplete[/yellow]"
+                self.console.print(f"  [cyan]{i}[/cyan]  {escape(raid.name)} [dim]({status})[/dim]")
+            except Exception:
+                self.console.print(f"  [cyan]{i}[/cyan]  [dim]{path.name} (unreadable)[/dim]")
+
+        self.console.print()
+
+        try:
+            choice = Prompt.ask("Select a raid (or 'b' to go back)", console=self.console).strip().lower()
+            if choice == 'b':
+                return False
+
+            idx = int(choice) - 1
+            if not 0 <= idx < len(saved):
+                self.console.print("[red]Invalid selection.[/red]")
+                return False
+
+            raid = CustomRaid.load(saved[idx])
+
+            if not raid.is_complete():
+                self.console.print("[red]This raid is incomplete (needs 7 battles).[/red]")
+                return False
+
+        except (ValueError, KeyboardInterrupt):
+            return False
+
+        self.console.print()
+        self.console.print(f"[bold]Loading:[/bold] {escape(raid.name)}")
+        self.console.print(f"[dim]This will overwrite raid slot {CUSTOM_RAID_SLOT} in the pak.[/dim]")
+        self.console.print()
+        if not Confirm.ask("Continue?", default=True):
+            return False
+
+        pak_path = game_info['game_root'] / "RED" / "Content" / "Paks" / "pakchunk0-WindowsNoEditor.pak"
+        aes_key = self._get_aes_key_with_fallback(pak_path)
+        if aes_key is None:
+            return False
+
+        paths = game_info['paths']
+        game_root = game_info['game_root']
+        shortcut_name = f"DBFZ Raid {CUSTOM_RAID_SLOT}.lnk"
+        shortcut_path = game_root / shortcut_name
+
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=self.console, transient=True) as progress:
+            task = progress.add_task("Loading custom raid...", total=4)
+
+            progress.update(task, description="Backing up pak file...")
+            from core.pak_manager import PakManager
+            pak = PakManager(game_root, aes_key)
+            try:
+                pak.backup_pak()
+            except PakError as e:
+                self.console.print(f"[red]Failed to back up pak: {e}[/red]")
+                return False
+            progress.advance(task)
+
+            progress.update(task, description="Injecting custom raid into pak...")
+            try:
+                pak.apply_custom_raid(raid.battles, CUSTOM_RAID_SLOT)
+            except PakError as e:
+                self.console.print(f"[red]Failed to inject raid into pak: {e}[/red]")
+                return False
+            progress.advance(task)
+
+            progress.update(task, description="Patching executable...")
+            try:
+                self.backup_manager.verify_clean_exe(paths['clean_exe'])
+                patched_exe = self.backup_manager.create_or_update_patched_exe(paths['clean_exe'], paths['patched_exe'])
+                result = self.patcher.patch_executable(patched_exe, CUSTOM_RAID_SLOT)
+                if not result['success']:
+                    self.console.print(f"[red]Executable patch failed: {result['errors']}[/red]")
+                    return False
+            except Exception as e:
+                self.console.print(f"[red]Failed to patch executable: {e}[/red]")
+                return False
+            progress.advance(task)
+
+            progress.update(task, description="Creating shortcut...")
+            try:
+                for old in game_root.glob("DBFZ Raid *.lnk"):
+                    try:
+                        old.unlink()
+                    except Exception:
+                        pass
+                self.shortcut_manager.create_shortcut(
+                    paths['patched_exe'],
+                    shortcut_path,
+                    raid.name,
+                )
+            except Exception as e:
+                logger.warning(f"Shortcut creation failed (non-critical): {e}")
+            progress.advance(task)
+
+        self.console.print()
+        self.console.print(Panel(
+            f"[bold green]{escape(raid.name)} loaded![/bold green]\n\n"
+            f"[dim]Raid slot {CUSTOM_RAID_SLOT} is patched and active.[/dim]\n"
+            f"[dim]Launch via [bold]{escape(shortcut_name)}[/bold] in your game folder.[/dim]",
+            box=box.ROUNDED,
+            border_style="green",
+            title="Done"
+        ))
+        self.console.print()
+        self.console.print("[dim]Press Enter to exit...[/dim]")
+        input()
+        return True
+
+    def _get_aes_key_with_fallback(self, pak_path: Path) -> Optional[bytes]:
+        """
+        Return AES key, prompting the user if the pak file is not found or invalid.
+
+        Returns:
+            Key bytes, or None if user cancelled
+        """
+        try:
+            return get_aes_key(pak_path)
+        except AESKeyError as e:
+            self.console.print()
+            self.console.print(f"[yellow]{e}[/yellow]")
+            self.console.print("[dim]If the pak file moved, enter its path or press 'b' to cancel.[/dim]")
+            self.console.print()
+
+            while True:
+                try:
+                    key_str = Prompt.ask("Enter AES key (or 'b' to cancel)", console=self.console).strip()
+                    if key_str.lower() == 'b':
+                        return None
+                    return validate_user_key(key_str, pak_path)
+                except AESKeyError as ve:
+                    self.console.print(f"[red]{ve}[/red]")
+                except KeyboardInterrupt:
+                    self.console.print()
+                    return None

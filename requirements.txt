@@ -9,5 +9,11 @@ pywin32>=307
 # Steam VDF file parsing
 vdf==3.4
 
+# AES encryption for pak file decryption
+pycryptodome>=3.20.0
+
+# Better deflate compression (fallback when zlib cannot fit modified data in original block space)
+zopfli>=0.3.0
+
 # Build tool (6.10.0+ supports Python 3.13)
 pyinstaller>=6.10.0

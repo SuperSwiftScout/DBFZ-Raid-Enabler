@@ -34,3 +34,13 @@ class EACError(DBFZRaidError):
 class ShortcutError(DBFZRaidError):
     """Raised when shortcut creation fails."""
     pass
+
+
+class AESKeyError(DBFZRaidError):
+    """Raised when AES key validation fails or key is unavailable."""
+    pass
+
+
+class PakError(DBFZRaidError):
+    """Raised when pak file operations fail."""
+    pass
