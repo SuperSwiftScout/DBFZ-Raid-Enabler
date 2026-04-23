@@ -59,9 +59,8 @@ The pattern matching and binary patching techniques are based on Gneiss64's orig
 
 ## Compatibility
 
-Currently tested and working with:
+Intended for:
 - **Game Version**: 1.50
-- **Last Verified**: January 2026
 
 ## Installation
 
