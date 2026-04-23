@@ -1,6 +1,6 @@
 # DBFZ Raid Enabler
 
-DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles again. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
+DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events, allowing you to access specific raid battles whenever you want. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
 
 ### [DOWNLOAD](../../releases)
 
