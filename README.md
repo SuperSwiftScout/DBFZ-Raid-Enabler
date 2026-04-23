@@ -1,6 +1,6 @@
 # DBFZ Raid Enabler
 
-DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events locally, allowing you to access raid battles again. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
+DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid events, allowing you to access specific raid battles whenever you want. Raids can be played with friends online (requires 3 players). The tool features an interactive terminal interface, automatic game detection via Steam, and creates shortcuts in your game folder for easy access.
 
 ### [DOWNLOAD](../../releases)
 
@@ -13,6 +13,8 @@ To avoid desync issues during online raid play, **all players must be on the sam
 - **Tailscale**
 
 Without LAN or VPN tunneling, you will likely experience severe desynchronization that makes raids unplayable.
+
+All players must also be on the **same netcode**. Mixing netcode types will cause desync.
 
 ## Usage Guide
 
@@ -85,7 +87,7 @@ The pattern matching and binary patching techniques are based on Gneiss64's orig
 ## Compatibility
 
 Currently tested and working with:
-- **Game Version**: 4.17.2.0
+- **Game Version**: 1.50
 - **Last Verified**: January 2026
 
 ## Installation

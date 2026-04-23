@@ -129,8 +129,8 @@ class BackupManager:
                     raid_bytes = exe_data[i + 1:i + 5]
                     raid_index = int.from_bytes(raid_bytes, byteorder='little')
 
-                    # Validate raid index (1-38)
-                    if 1 <= raid_index <= 38:
+                    # Validate raid index (1-39)
+                    if 1 <= raid_index <= 39:
                         logger.info(f"Detected current patch: Raid {raid_index}")
                         return raid_index
 

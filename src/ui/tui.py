@@ -453,7 +453,7 @@ class DBFZRaidTUI:
         while True:
             try:
                 choice = Prompt.ask(
-                    "Select a raid (1-38), 'c' to cleanup, or 'q' to quit",
+                    "Select a raid (1-39), 'c' to cleanup, or 'q' to quit",
                     console=self.console
                 )
 
@@ -467,10 +467,10 @@ class DBFZRaidTUI:
                     return 'cleanup'
 
                 raid_idx = int(choice)
-                if 1 <= raid_idx <= 38:
+                if 1 <= raid_idx <= 39:
                     return raid_idx
                 else:
-                    self.console.print("[red]Invalid raid number. Must be 1-38.[/red]")
+                    self.console.print("[red]Invalid raid number. Must be 1-39.[/red]")
 
             except ValueError:
                 self.console.print("[red]Invalid input. Enter a number, 'c' for cleanup, or 'q'.[/red]")

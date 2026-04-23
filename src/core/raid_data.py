@@ -13,6 +13,7 @@ CHARACTER_CODES = {
     "BUN": "Majin Buu",
     "CEN": "Cell",
     "CLF": "Cooler",
+    "DGF": "Goku (SS4 DAIMA)",
     "EST": "Broly (DBS)",
     "FRN": "Frieza",
     "GBR": "Goku Black (SS Rosé)",
@@ -89,6 +90,7 @@ RAID_MAIN_BOSS = {
     36: "OSM",
     37: "TOP",
     38: "GFF",
+    39: "DGF",
 }
 
 # All characters that appear in each raid (derived from RaidEventTable)
@@ -131,6 +133,7 @@ RAID_CHARACTERS = {
     36: ["AEN", "BDN", "BRS", "GHU", "KRN", "OSM", "TRS", "VDN"],
     37: ["AEN", "ASN", "AVP", "CEN", "TON", "TOP"],
     38: ["BRS", "BSN", "BUK", "CEN", "CLF", "EST", "FRN", "GFF", "GKS", "HTN", "JNN", "JRN", "MGS", "NHY", "TRS", "VGB", "VGS", "VTB", "ZMB"],
+    39: ["BRS", "DGF", "EST", "GBR", "GFF", "GHT", "GKB", "GKS", "GTL", "KFS", "MGS", "NHY", "SGN", "TRS", "VGB", "VGS", "VTB", "ZMB"],
 }
 
 # Risk levels (difficulty stars) for each raid
@@ -173,6 +176,7 @@ RAID_RISK_LEVELS = {
     36: 5,
     37: 5,
     38: 5,
+    39: 5,
 }
 
 RAID_BOSSES = {
@@ -213,7 +217,8 @@ RAID_BOSSES = {
     35: "Facing the Fusions",
     36: "Trouble with a Tuffle",
     37: "Elegant Androids",
-    38: "Ultimate Zenkai Battle"
+    38: "Ultimate Zenkai Battle",
+    39: "Surpass the Super Saiyans!"
 }
 
 
