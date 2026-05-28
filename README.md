@@ -19,7 +19,6 @@ All players must also be on the **same netcode**.
 ## Table of Contents
 
 - [Read Before You Play](#read-before-you-play)
-- [Credits](#credits)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Compatibility](#compatibility)
@@ -32,14 +31,6 @@ All players must also be on the **same netcode**.
 - [Building](#building)
 - [Project Structure](#project-structure)
 - [Disclaimer](#disclaimer)
-
-## Credits
-
-This project is a Python reimplementation of the original C# tool with added features and improved user experience.
-
-**Original Patching Logic**: [Gneiss64/DBFZRaidEnabler](https://github.com/Gneiss64/DBFZRaidEnabler)
-
-The pattern matching and binary patching techniques are based on Gneiss64's original work.
 
 ## Features
 
