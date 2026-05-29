@@ -6,6 +6,14 @@ DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid eve
 
 ## Read Before You Play
 
+**This tool patches exact byte patterns in the game executable. These patches can and will break when:**
+- **DBFZ receives an update** that modifies the patched functions
+- **The server changes what data it sends**
+
+The tool validates that patterns match before patching and will refuse to patch a changed executable, but a sudden breakage after a game update or server-side change may be unavoidable. If that happens, please open an issue so it can be investigated.
+
+---
+
 To avoid desync issues during online raid play, **all players must be on the same local network (LAN)**. If you're playing with friends over the internet, use a VPN tunneling solution to simulate a LAN connection:
 
 - **Radmin VPN**
@@ -19,7 +27,6 @@ All players must also be on the **same netcode**.
 ## Table of Contents
 
 - [Read Before You Play](#read-before-you-play)
-- [Credits](#credits)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Compatibility](#compatibility)
@@ -32,14 +39,6 @@ All players must also be on the **same netcode**.
 - [Building](#building)
 - [Project Structure](#project-structure)
 - [Disclaimer](#disclaimer)
-
-## Credits
-
-This project is a Python reimplementation of the original C# tool with added features and improved user experience.
-
-**Original Patching Logic**: [Gneiss64/DBFZRaidEnabler](https://github.com/Gneiss64/DBFZRaidEnabler)
-
-The pattern matching and binary patching techniques are based on Gneiss64's original work.
 
 ## Features
 
@@ -124,14 +123,15 @@ If you encounter other problems:
 
 ## How It Works
 
-The patcher performs five binary modifications to the game executable:
+The patcher performs six binary modifications to the game executable:
 - **Get Raid**: Patches the function that retrieves the current raid index
 - **Set Raid**: Patches the function that sets the active raid
 - **Raid Status**: Bypasses the online raid availability check
+- **Raid Count Gate**: Bypasses the server raid event count check — when the server sends zero raid entries, the game short-circuits before reaching the other raid patches. This forces the check to always return true
 - **FCup Skip**: Prevents FCup popup that can cause softlocks
 - **Partybattle Skip**: Prevents Partybattle popup that can cause softlocks
 
-The core raid patterns are based on the original C# implementation, with additional patches to improve stability.
+The core raid patterns are based on the original C# implementation, with additional patches to improve stability and handle server-side changes.
 
 ## How Patching Works
 

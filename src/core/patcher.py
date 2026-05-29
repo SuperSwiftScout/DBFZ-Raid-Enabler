@@ -17,7 +17,6 @@ class BinaryPatcher:
         Args:
             exe_data: Full executable as mutable bytearray
             pattern: Space-separated hex pattern (e.g., "8B 81 C4 53 1D 00")
-                    Supports "??" wildcard for any byte
             new_bytes: Replacement bytes
 
         Returns:
@@ -33,9 +32,6 @@ class BinaryPatcher:
 
             # Check if pattern matches at current position
             for j, pattern_byte in enumerate(pattern_bytes):
-                # Wildcard matches any byte
-                if pattern_byte == "??":
-                    continue
 
                 # Check if byte matches
                 if int(pattern_byte, 16) != exe_data[i + j]:
@@ -61,12 +57,7 @@ class BinaryPatcher:
             raid_index: Raid number (1-38)
 
         Returns:
-            Dictionary with patch names as keys and (pattern, replacement) tuples:
-            {
-                'get_raid': (pattern, replacement_bytes),
-                'set_raid': (pattern, replacement_bytes),
-                'raid_status': (pattern, replacement_bytes)
-            }
+            Dictionary with patch names as keys and (pattern, replacement) tuples
         """
         # Convert raid index to little-endian 4-byte format
         raid_bytes = raid_index.to_bytes(4, byteorder='little')
@@ -110,12 +101,24 @@ class BinaryPatcher:
             0xEB, 0x2A                     # JMP +0x2a (always skip)
         ])
 
+        # Patch 6: Raid Count Gate Bypass
+        # Original function (FUN_140371eb0) checks if the server's raid event list
+        # This replaces the function entry with: MOV EAX, 1; RET (always returns true)
+        raid_count_gate_pattern = "48 83 EC 28 E8 F7 8A FF FF 32 D2 83 B8 FC 56 1D 00 00"
+        raid_count_gate_replacement = bytes([
+            0xB8, 0x01, 0x00, 0x00, 0x00,                          # MOV EAX, 1
+            0xC3,                                                  # RET
+            0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,  # NOP x9
+            0x90, 0x90, 0x90,                                      # NOP x3
+        ])
+
         return {
             'get_raid': (get_pattern, bytes(get_replacement)),
             'set_raid': (set_pattern, bytes(set_replacement)),
             'raid_status': (status_pattern, bytes(status_replacement)),
             'skip_fcup_caller': (skip_fcup_caller_pattern, skip_fcup_caller_replacement),
             'skip_partybattle': (skip_partybattle_pattern, skip_partybattle_replacement),
+            'raid_count_gate': (raid_count_gate_pattern, raid_count_gate_replacement),
         }
 
     def patch_executable(self, exe_path: Path, raid_index: int) -> Dict[str, Any]:
@@ -130,7 +133,7 @@ class BinaryPatcher:
             Dictionary with results:
             {
                 'success': bool,
-                'offsets': {'get_raid': int, 'set_raid': int, 'raid_status': int},
+                'offsets': dict,
                 'errors': [str]
             }
 
