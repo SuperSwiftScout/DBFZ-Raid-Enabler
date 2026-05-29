@@ -6,6 +6,14 @@ DBFZ Raid Enabler patches the Dragon Ball FighterZ executable to enable raid eve
 
 ## Read Before You Play
 
+**This tool patches exact byte patterns in the game executable. These patches can and will break when:**
+- **DBFZ receives an update** that modifies the patched functions
+- **The server changes what data it sends**
+
+The tool validates that patterns match before patching and will refuse to patch a changed executable, but a sudden breakage after a game update or server-side change may be unavoidable. If that happens, please open an issue so it can be investigated.
+
+---
+
 To avoid desync issues during online raid play, **all players must be on the same local network (LAN)**. If you're playing with friends over the internet, use a VPN tunneling solution to simulate a LAN connection:
 
 - **Radmin VPN**
