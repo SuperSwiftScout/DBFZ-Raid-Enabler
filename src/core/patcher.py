@@ -103,16 +103,13 @@ class BinaryPatcher:
 
         # Patch 6: Raid Count Gate Bypass
         # Original function (FUN_140371eb0) checks if the server's raid event list
-        # count (offset 0x1D56FC) is >= 1 before proceeding. When the server stops
-        # sending any raid event entries, this count is 0 and the function returns 0
-        # immediately, preventing all downstream raid checks from executing.
         # This replaces the function entry with: MOV EAX, 1; RET (always returns true)
         raid_count_gate_pattern = "48 83 EC 28 E8 F7 8A FF FF 32 D2 83 B8 FC 56 1D 00 00"
         raid_count_gate_replacement = bytes([
             0xB8, 0x01, 0x00, 0x00, 0x00,                          # MOV EAX, 1
-            0xC3,                                                    # RET
+            0xC3,                                                  # RET
             0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,  # NOP x9
-            0x90, 0x90, 0x90,                                       # NOP x3
+            0x90, 0x90, 0x90,                                      # NOP x3
         ])
 
         return {
