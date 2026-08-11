@@ -127,11 +127,9 @@ The patcher performs six binary modifications to the game executable:
 - **Get Raid**: Patches the function that retrieves the current raid index
 - **Set Raid**: Patches the function that sets the active raid
 - **Raid Status**: Bypasses the online raid availability check
-- **Raid Count Gate**: Bypasses the server raid event count check — when the server sends zero raid entries, the game short-circuits before reaching the other raid patches. This forces the check to always return true
+- **Raid Count Gate**: Bypasses the server raid event count check. If the server sends zero raid entries, the game would short-circuit before reaching the other raid patches. This forces the check to always return true
 - **FCup Skip**: Prevents FCup popup that can cause softlocks
 - **Partybattle Skip**: Prevents Partybattle popup that can cause softlocks
-
-The core raid patterns are based on the original C# implementation, with additional patches to improve stability and handle server-side changes.
 
 ## How Patching Works
 
